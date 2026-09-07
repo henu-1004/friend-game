@@ -1,15 +1,5 @@
-# FriendSmash product notes
-
-## Friend Lore Engine (MUST)
-- Each fighter gets 1 absurd random trait per match; re-roll every rematch.
-- Pool examples: 도망의 신, 배신자, 불사신, plus more goofy ones.
-- Show trait under name; proc toasts in Korean; mechanical effect required.
-- Laugh at friend-fit lore > pure win/loss.
-
-## Platform
-- Core: physics arena spectator+intervention
-- Later minigames: duel, zombie — not in MVP
-
-## Face crop (MUST)
-- Detect face in browser (MediaPipe or face-api or FaceDetector); crop to circle; attach to body.
-- Local-only. Manual crop fallback if detection fails.
+# FriendSmash v2
+Goal: sticky 5-8 min run with face pucks, visible kits, post-stage upgrades, stage themes.
+Visual: no stickmen; face disks + oversized props + VFX.
+Loop: roster → 40-70s fight → 3-card upgrade → next stage → unlocks with Hype.
+Stages: Backyard, Castle, Beast Pit, Neon Lab, Rift.
