@@ -1,36 +1,40 @@
-# FriendSmash v2
+# 친구 샌드백 / FriendSmash
 
-A Korean, browser-only spectator brawler: 2–6 friends form one team for a five-stage run. Characters are circular face pucks with thick color rings, soft shadows, and one oversized edge-mounted prop. Whole pucks rotate, squash, flash, recoil, and throw sparks on impact, with light camera shake.
+A Korean, local-first sandbag game. Open the page and punch immediately, or add a face photo. Build combos, discover silly overlay stickers, reach KO, save a reaction card, and retry with the same face.
 
-## Run and verify
+The original five-stage spectator game remains available as **Classic** at `classic.html`. Its rules, roster, kits, upgrades, and local progress are preserved. See [Classic instructions](docs/CLASSIC.md).
 
-Requires Node.js 20.19+ or 22.12+.
+## Run
+
+Node.js 20.19+ or 22.12+:
 
 ```sh
-npm install
+npm ci
 npm run dev
-npm test
-npm run build
 ```
 
-Vite produces `dist/`. Tests cover kit coverage, rerolls, stage definitions, upgrade offers, and victory/defeat/timeout rules.
+## Build and verify
+
+```sh
+npm test
+npm run build
+npx playwright install chromium
+npm run test:browser
+node scripts/performance.mjs
+```
+
+`dist/index.html` and `dist/classic.html` are separate production entries. Serve the whole `dist/` directory on any static host; assets use relative paths, including under a project subdirectory. `npm run preview` serves the built game locally.
+
+Browser tests start their own preview server on port 4173 and cover desktop Chromium and a Pixel 7 viewport/touch emulation. The performance script uses port 4183 and includes an approximately three-minute continuous replay run. `--soak=30000` shortens that final run. Emulation does not establish physical phone performance.
 
 ## Play
 
-Choose each friend's visible kit in the roster, optionally add local face photos, then start. Friends automatically fight stage NPCs and reinforcements; the boss arrives at 40 seconds. Each fight lasts up to 60 seconds (ends early on team elimination); budget roughly 5–8 minutes including roster setup and card choices. A timeout counts as defeat. Both wins and losses offer three upgrade cards, restore the team, and advance. After the Rift, choose a toy to carry into your next run in the current session.
+- Click or tap the bag, press Space/Enter on the focused bag, or use **한 방 날리기**. Space also works when focus is outside a control. Holding a key does not auto-punch.
+- Hits within 850 ms continue the combo. Base damage is 8; every four combo hits adds 1 damage, capped at +6. Starting HP is 360.
+- At 3 / 6 / 10 combo, unlock star eyes / spiral eyes / a moustache. Select an unlocked sticker or keep automatic reactions.
+- KO shows hit count, best combo, elapsed time, PNG download, and **한 판 더!**. Retry restores HP and resets this round's combo/stickers; the face stays.
+- Sound is opt-in. **움직임 줄이기** reduces motion and defaults to the operating system preference.
 
-- **Backyard:** sprinkler knockback, snack guards, frying-pan lawn king.
-- **Castle:** timed gate trap, archers, shield knight.
-- **Beast Pit:** timed poison pool, axe rushers, wolf lord with companion.
-- **Neon Lab:** pulsing laser lane, gun guards, a mecha boss using a friend's face.
-- **Rift:** gravitational pull and damaging core, ice guards, an oversized friend wizard boss.
+Photos are decoded locally, bounded to a 1600px source, and cropped to 320×320. Use drag or labeled sliders to align the face. Accepted formats: JPG, PNG, WebP, AVIF, GIF (flattened); maximum 12 MB and 40 million decoded pixels. Unsupported/corrupt files show a recoverable message. No photo upload endpoint, external assets, analytics, or face-detection service is used. Reload clears photos and session KO counts; the completed-round best combo is the only Sandbag value stored locally. Storage failure does not block play.
 
-Twelve selectable kits: charging axe, fleeing shield, bow, rapid gun, magic wand, wolf companion, orbiting laser drone, knockback pan, pulling magnet, slowing ice, splash bomb, and healing lollipop. Every kit has a visible prop and distinct behavior. Spectators can push everyone with wind, heal friends, or launch everyone into chaos, sharing a five-second cooldown.
-
-Upgrade cards add larger weapons and melee reach, ricocheting projectiles for all friends, wolves, drones, freezing hits, or visible three-hit shields. Repeated upgrades stack. No inventory or skill tree. Wins earn 30 Hype, losses 10; at 100 Hype, the drone upgrade joins the card pool. The base drone kit is always selectable. Hype persists in `localStorage`; the roster, photos, current run, and next-run carry card are session-only. Storage failure does not block play.
-
-## Faces and privacy
-
-Images are decoded and cropped entirely in the browser. Native `FaceDetector` is attempted when available; the drag-and-zoom crop editor is always shown for confirmation and serves as the fallback. Nothing uploads and no remote detection service is used. Crops are circular and photos disappear on reload.
-
-Desktop and mobile layouts, native accessible dialogs, labeled roster controls, and keyboard-accessible upgrade cards. Canvas combat is visual; the event feed announces eliminations and interventions. No backend, PvP, loot bags, or additional currencies.
+See [DESIGN.md](DESIGN.md), [screenshots and measurements](docs/artifacts), and [Phase 1 reports](docs/FINAL_REPORT.md). No Friend Cannon development or playtest is part of this change.

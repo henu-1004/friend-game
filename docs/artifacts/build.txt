@@ -1,0 +1,17 @@
+
+> friend-smash@0.1.0 build
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 10 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/classic.html                                0.52 kB │ gzip: 0.33 kB
+dist/index.html                                  0.72 kB │ gzip: 0.47 kB
+dist/assets/classic-CvvrBzK-.css                 5.13 kB │ gzip: 1.82 kB
+dist/assets/sandbag-DMpQ44Lg.css                11.26 kB │ gzip: 3.24 kB
+dist/assets/modulepreload-polyfill-B5Qt9EMX.js   0.71 kB │ gzip: 0.40 kB
+dist/assets/classic-CAyFuSBk.js                 21.96 kB │ gzip: 9.59 kB
+dist/assets/sandbag-BkeMWi4b.js                 24.07 kB │ gzip: 9.38 kB
+✓ built in 239ms

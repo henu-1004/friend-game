@@ -1,885 +1,531 @@
 import "./style.css";
 import {
-  traits,
-  rollTrait,
-  stages,
-  upgrades,
-  upgradeChoices,
-  stageResult,
-} from "./lore.js";
-const $ = (s) => document.querySelector(s);
-$("#app").innerHTML =
-  `<header><div class="brand">friend<b>smash</b> ✳ <small>VOL. 02</small></div><span id="meta" class="pill"></span></header>
-<main><div class="intro"><div><div class="eyebrow">작은 얼굴 · 커다란 소동</div><h1>친구 얼굴로, 세계를 뒤집자.</h1><p>무기는 크게. 우정은 아슬아슬하게. 다섯 아레나를 함께 돌파하세요.</p></div><button id="start" class="primary">5 스테이지 시작 ↗</button></div>
-<nav id="route" aria-label="스테이지 진행"></nav><div class="layout"><section><div class="arena"><div class="arena-head"><span id="status" class="live">● 입장 대기</span><span id="timer">60초</span></div><div class="stage"><canvas id="arena" width="900" height="600" aria-label="얼굴 퍽과 커다란 장난감의 자동 전투"></canvas><div id="overlay" class="overlay"><div class="eyebrow">얼굴만 있으면 준비 완료</div><h2>오늘의 전설은 누구?</h2><p>친구들은 한 팀! 적과 보스를 함께 쓰러뜨려요.</p></div></div><div class="controls"><button data-action="wind">💨 돌풍</button><button data-action="heal">🍪 친구에게 간식</button><button data-action="chaos">⚡ 대혼란</button></div></div><p id="hazard" class="hint"></p><div id="toys" class="toys"></div><p class="hint">자동 전투 · 개입 재사용 5초 · 패배해도 업그레이드를 골라 계속 진행해요.</p></section>
-<aside><div class="panel"><h2>우리 팀 <span id="count"></span></h2><p>2–6명 · 능력을 눌러 장난감을 바꿔보세요.</p><div id="roster"></div><form id="add"><input id="name" placeholder="친구 이름" maxlength="16" required aria-label="친구 이름"><label class="upload">얼굴 사진 (선택)<input id="photo" type="file" accept="image/*"></label><button id="add-button">+ 친구 입장</button></form><p id="photo-status" role="status">사진은 이 브라우저 안에서만 처리돼요.</p></div><div class="panel feed"><h2>📣 친구 전설 생중계</h2><div id="events" aria-live="polite"></div></div></aside></div><div class="footer"><span>얼굴은 로컬에. 전설은 아레나에.</span><span>FRIENDSMASH / V2</span></div></main>
-<dialog id="result"><div class="eyebrow" id="result-label"></div><h2 id="result-title"></h2><p id="result-copy"></p><div id="cards"></div></dialog>
-<dialog id="crop-dialog"><h2>친구 얼굴 맞추기</h2><p id="crop-message"></p><canvas id="crop" width="360" height="360"></canvas><p>사진을 드래그해서 얼굴을 원 안에 맞추세요.</p><label>확대<input id="zoom" type="range" min="1" max="4" step="0.01" value="1"></label><div class="actions"><button id="save-crop" class="primary">이 얼굴로 입장</button><button id="cancel-crop">취소</button></div></dialog>`;
-const colors = [
-  "#d5ff63",
-  "#b6a1ff",
-  "#ff987f",
-  "#7bdbe6",
-  "#ffce69",
-  "#ed99d9",
-];
-let roster = ["민수", "지우", "수빈", "준호"].map((name, i) => ({
-  name,
-  emoji: ["😎", "😈", "🥸", "🥹"][i],
-  trait: traits[[0, 2, 5, 7][i]],
-  color: colors[i],
-}));
-let fighters = [],
-  shots = [],
-  pets = [],
-  particles = [],
-  running = false,
-  inRun = false,
-  elapsed = 0,
-  last = 0,
-  cooldown = 0,
-  pendingFace = null,
-  events = [],
-  stageIndex = 0,
-  owned = [],
-  carry = [],
-  wins = 0,
-  shake = 0;
-let hype = 0;
+  MAX_HP,
+  COMBO_MS,
+  REACTIONS,
+  newRound,
+  punch,
+  expireCombo,
+  roundSeconds,
+  cropPosition,
+} from "./sandbag.js";
+import { SandbagRenderer } from "./sandbag-renderer.js";
+
+const $ = (selector) => document.querySelector(selector);
+$("#app").innerHTML = `
+<header class="topbar">
+  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">✳</span> friend<span>smash</span></a>
+  <nav aria-label="게임 모드"><a class="nav-link active" href="./" aria-current="page">샌드백</a><a class="nav-link" href="./classic.html">Classic ↗</a></nav>
+  <span class="edition">작은 장난, 큰 웃음.</span>
+</header>
+<main>
+  <section class="intro"><div><div class="eyebrow"><span class="dot"></span> 우정 테스트 말고, 펀치 테스트</div><h1>툭 치면, <span>빵 터진다.</span></h1><p>친구 얼굴을 붙이고 톡톡. 오늘의 스트레스를 말랑하게 날려요.</p></div><div class="intro-note">준비는 5초면 충분해요.<br>사진 없이도 바로 한 판!</div></section>
+  <div class="game-layout">
+    <section aria-label="샌드백 놀이터">
+      <div class="playroom">
+        <div class="arena-top"><div class="round-label"><b>●</b> 샌드백 <span id="round-number">01</span></div><div class="settings"><button id="sound" class="icon-button" aria-pressed="false">소리 꺼짐</button><button id="motion" class="icon-button" aria-pressed="false">움직임 줄이기</button></div></div>
+        <div class="health-row"><strong id="bag-status">말랑이, 준비 완료!</strong><span id="hp-label">체력 ${MAX_HP} / ${MAX_HP}</span></div>
+        <div id="hp" class="health" role="progressbar" aria-label="샌드백 체력" aria-valuemin="0" aria-valuemax="${MAX_HP}" aria-valuenow="${MAX_HP}"><i></i></div>
+        <div class="arena">
+          <button id="target" class="target" aria-label="샌드백 펀치. 클릭하거나 스페이스 또는 엔터를 누르세요."><canvas id="bag" aria-hidden="true"></canvas></button>
+          <div class="side-stamp">얼굴은 말랑 · 우정은 단단</div>
+          <div class="combo-box" aria-label="현재 콤보"><small>연속 펀치</small><strong id="combo">0<span> 콤보</span></strong><div class="combo-clock"><i id="combo-fill"></i></div></div>
+          <div class="arena-help" id="arena-help">얼굴을 톡! 또는 <kbd>SPACE</kbd> 로 펀치</div>
+        </div>
+        <div class="punchbar"><button id="punch" class="punch-button">한 방 날리기 <span>↗</span></button><p>빠르게 이으면 콤보!<br>콤보가 쌓일수록 더 우스워져요.</p></div>
+      </div>
+      <div class="below-arena"><span><span class="dot"></span> <b id="play-hint">연속 3번이면 첫 표정 등장</b></span><span id="fps">부드러움 측정 중</span></div>
+    </section>
+    <aside aria-label="얼굴과 플레이 기록">
+      <section class="panel face-panel"><div class="panel-heading"><h2>오늘의 주인공</h2><span class="step-number">01 / 얼굴</span></div><div class="face-content"><div class="face-row"><div id="avatar" class="avatar" aria-hidden="true">☺</div><div><strong id="face-name">연습 친구, 말랑이</strong><p>준비됐어? 난 말랑해.</p></div></div><div><button id="upload" class="upload-button">＋ 친구 얼굴 붙이기</button><input id="photo" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" tabindex="-1" aria-label="친구 얼굴 사진 선택"><div class="photo-options" id="photo-options" hidden><button id="recrop" class="text-button">위치 조절</button><button id="remove-photo" class="text-button">기본 얼굴로</button></div></div><p id="photo-status" class="local-note" role="status">사진은 이 기기 안에서만 사용해요.<br>함께 웃을 수 있는 사진으로 골라 주세요.</p></div></section>
+      <section class="panel"><div class="panel-heading"><h2>표정 수집</h2><span class="step-number">02 / 리액션</span></div><div class="reactions">${["☺", "✦", "◎", "〰"].map((icon, i) => `<button class="reaction" data-reaction="${i}" data-unlocked="${i === 0}" aria-label="${REACTIONS[i].name}, ${i ? REACTIONS[i].unlock + "콤보 달성 후 선택" : "자동 표정"}" aria-pressed="${i === 0}" ${i ? "disabled" : ""}>${icon}<small>${i ? REACTIONS[i].unlock + " 콤보" : "자동"}</small></button>`).join("")}</div><p id="reaction-caption" class="reaction-caption">어? 방금 뭐 지나갔어?</p><p class="reaction-hint">콤보로 열고, 눌러서 붙여요.<br>사진 위에 우스운 표정이 착!</p></section>
+      <section class="panel session"><div class="panel-heading"><h2>나의 작은 기록</h2><span class="step-number">03 / 한 판 더</span></div><div class="session-stats"><div><strong id="best">0</strong><small>최고 연속 콤보</small></div><div><strong id="kos">0</strong><small>오늘의 KO · 이번 접속</small></div></div><p>잘 때리는 것보다, 웃기는 게 우선.<br>KO 뒤에도 얼굴은 그대로, 바로 한 판 더!</p></section>
+    </aside>
+  </div>
+  <div class="steps"><p><b>01</b> 얼굴을 붙여요 <span>· 선택</span></p><p><b>02</b> 톡톡 치고 콤보를 이어요</p><p><b>03</b> 웃긴 얼굴로 KO, 한 판 더!</p></div>
+  <footer><strong>FRIENDSMASH / 샌드백 클럽</strong><span>장난은 가볍게. 친구는 소중하게.</span></footer>
+</main>
+<div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+<dialog id="crop-dialog" aria-labelledby="crop-title"><div class="dialog-top"><span class="eyebrow">얼굴 준비 중</span><button id="cancel-crop" class="close-button" aria-label="얼굴 편집 취소">×</button></div><h2 id="crop-title">동그라미 안에 쏙.</h2><p>얼굴이 가운데 오도록 사진을 드래그해요.<br>아래 슬라이더로도 위치를 조절할 수 있어요.</p><canvas id="crop" class="crop-canvas" width="320" height="320" aria-label="얼굴 자르기 미리보기"></canvas><div class="crop-controls"><label>확대<input id="zoom" type="range" min="1" max="4" step="0.01" value="1"></label><label>가로 위치<input id="crop-x" type="range" min="-480" max="480" value="0"></label><label>세로 위치<input id="crop-y" type="range" min="-480" max="480" value="0"></label></div><button id="save-crop" class="primary" style="width:100%">이 얼굴로 놀기 ↗</button></dialog>
+<dialog id="result" class="result-dialog" aria-labelledby="result-title"><div class="eyebrow">오늘도 사이좋게 한 판 끝!</div><div class="ko-symbol" aria-hidden="true">K.O.!</div><h2 id="result-title">우정은 끄떡없지?</h2><p>말랑한 샌드백은 벌써 다음 판 준비 중.</p><div class="result-stats"><div><strong id="result-hits">0</strong><span>펀치</span></div><div><strong id="result-combo">0</strong><span>최고 콤보</span></div><div><strong id="result-time">0</strong><span>플레이 초</span></div></div><button id="retry" class="primary">한 판 더! ↻</button><button id="save-card" class="secondary">웃긴 순간 사진 저장 ↓</button><p id="save-status" role="status">사진은 저장 버튼을 누를 때만 만들어져요.</p></dialog>
+`;
+
+const renderer = new SandbagRenderer($("#bag"));
+let state = newRound(),
+  rounds = 1,
+  kos = 0,
+  best = 0,
+  forcedReaction = null;
+let sound = false,
+  audioContext,
+  resultTimer,
+  raf = 0,
+  previous = 0,
+  frames = [],
+  fpsTime = 0;
+const reducedQuery = matchMedia("(prefers-reduced-motion: reduce)");
+renderer.reduced = reducedQuery.matches;
+$("#motion").setAttribute("aria-pressed", String(renderer.reduced));
 try {
-  hype = Math.max(
-    0,
-    Number(JSON.parse(localStorage.getItem("friendsmash-v2") || "{}").hype) ||
-      0,
+  best = Math.min(
+    99999,
+    Math.max(0, Number(localStorage.getItem("sandbag-best")) || 0),
   );
 } catch {}
-function saveMeta() {
-  try {
-    localStorage.setItem("friendsmash-v2", JSON.stringify({ hype }));
-  } catch {}
-  $("#meta").textContent =
-    `HYPE ${hype} · ${hype >= 100 ? "위성 장난감 해금" : "100 HYPE → 위성 해금"}`;
-}
-saveMeta();
-const stacks = (id) => owned.filter((x) => x === id).length;
-const canvas = $("#arena"),
-  ctx = canvas.getContext("2d"),
-  W = 900,
-  H = 600;
-function log(message) {
-  events.unshift(message);
-  events = events.slice(0, 5);
-  $("#events").replaceChildren(
-    ...events.map((t) => {
-      const el = document.createElement("div");
-      el.className = "event";
-      el.textContent = t;
-      return el;
-    }),
-  );
-}
-function renderRoster() {
-  $("#count").textContent = `${roster.length}/6`;
-  $("#roster").replaceChildren();
-  roster.forEach((f, i) => {
-    const row = document.createElement("div");
-    row.className = "fighter";
-    const avatar = document.createElement(f.face ? "img" : "span");
-    avatar.className = "avatar";
-    if (f.face) {
-      avatar.src = f.face.src;
-      avatar.alt = f.name;
-    } else avatar.textContent = f.emoji;
-    const info = document.createElement("div");
-    const name = document.createElement("strong");
-    name.textContent = f.name;
-    const kit = document.createElement("select");
-    kit.setAttribute("aria-label", `${f.name} 능력`);
-    kit.disabled = inRun;
-    for (const t of traits) {
-      const option = document.createElement("option");
-      option.value = t.id;
-      option.textContent = `${t.prop} ${t.name}`;
-      option.selected = t.id === f.trait.id;
-      kit.append(option);
-    }
-    kit.onchange = () => {
-      f.trait = traits.find((t) => t.id === kit.value);
-      renderRoster();
-    };
-    const desc = document.createElement("div");
-    desc.className = "trait";
-    desc.textContent = f.trait.description;
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    const fill = document.createElement("i");
-    const live = fighters.find((x) => x.rosterIndex === i);
-    fill.style.width = `${live ? (100 * live.hp) / live.maxHp : 100}%`;
-    bar.append(fill);
-    info.append(name, kit, desc, bar);
-    const remove = document.createElement("button");
-    remove.className = "remove";
-    remove.textContent = "×";
-    remove.setAttribute("aria-label", `${f.name} 제외`);
-    remove.disabled = inRun || roster.length <= 2;
-    remove.onclick = () => {
-      roster.splice(i, 1);
-      fighters = [];
-      renderRoster();
-    };
-    row.append(avatar, info, remove);
-    $("#roster").append(row);
-  });
-  $("#add-button").disabled = inRun || roster.length >= 6;
-  $("#start").disabled = inRun;
-  $("#photo").disabled = inRun;
-  $("#name").disabled = inRun;
-}
-function renderRoute() {
-  $("#route").replaceChildren(
-    ...stages.map((s, i) => {
-      const d = document.createElement("div");
-      d.className = i === stageIndex ? "current" : "";
-      d.textContent = `${i < stageIndex ? "✓" : `0${i + 1}`} ${s.icon} ${s.name}`;
-      return d;
-    }),
-  );
-  $("#hazard").textContent = stages[stageIndex].hazard;
-  $("#toys").textContent = owned.length
-    ? `이번 런의 장난감: ${owned.map((id) => upgrades.find((u) => u.id === id)?.icon).join(" ")}`
-    : "스테이지가 끝날 때마다 새로운 장난감을 하나 골라요.";
-}
-function makeFighter(f, team, i, total) {
-  return {
-    ...f,
-    team,
-    rosterIndex: team === 0 ? i : undefined,
-    x: team === 0 ? 160 : 720,
-    y: 95 + ((i + 0.5) * 410) / total,
-    vx: 0,
-    vy: 0,
-    r: f.boss ? 55 : 30,
-    angle: team ? Math.PI : 0,
-    spin: 0,
-    hp: f.boss ? 180 + stageIndex * 25 : team ? 80 : 150,
-    maxHp: f.boss ? 180 + stageIndex * 25 : team ? 80 : 150,
-    next: 1 + i * 0.25,
-    hit: 0,
-    slow: 0,
-    guard: team === 0 && owned.includes("halo") ? 3 * stacks("halo") : 0,
-  };
-}
-let pendingBoss = null;
-function startStage() {
-  elapsed = 0;
-  cooldown = 0;
-  shots = [];
-  pets = [];
-  particles = [];
-  const s = stages[stageIndex];
-  fighters = roster.map((f, i) => makeFighter(f, 0, i, roster.length));
-  const friend = roster[stageIndex % roster.length];
-  const enemies = Array.from(
-    { length: Math.max(1, roster.length - 2) },
-    (_, i) => ({
-      name: `${s.name} 수비대 ${i + 1}`,
-      emoji: s.icon,
-      color: s.color,
-      trait: traits.find((t) => t.id === s.npc),
-    }),
-  );
-  enemies.push({
-    name: stageIndex >= 3 ? `${s.boss} ${friend.name}` : s.boss,
-    emoji: stageIndex >= 3 ? friend.emoji : "👹",
-    face: stageIndex >= 3 ? friend.face : null,
-    color: s.color,
-    trait: traits.find((t) => t.id === s.kit),
-    boss: true,
-  });
-  pendingBoss = enemies.pop();
-  fighters.push(...enemies.map((f, i) => makeFighter(f, 1, i, enemies.length)));
-  for (const f of fighters) {
-    for (
-      let n = 0;
-      n < Number(f.trait.id === "wolf") + (f.team === 0 ? stacks("summon") : 0);
-      n++
-    )
-      pets.push({ owner: f, kind: "wolf", x: f.x, y: f.y, next: 0 });
-    for (
-      let n = 0;
-      n < Number(f.trait.id === "drone") + (f.team === 0 ? stacks("orbit") : 0);
-      n++
-    )
-      pets.push({
-        owner: f,
-        kind: "drone",
-        phase: n * 2,
-        x: f.x,
-        y: f.y,
-        next: 0,
-      });
-  }
-  running = true;
-  $("#overlay").classList.add("hidden");
-  $("#status").textContent = `● ${s.name} · 40초 생존 후 ${s.boss} 출현`;
-  renderRoute();
-  renderRoster();
-  log(`${s.name} 입장! ${s.hazard}`);
-}
-$("#start").onclick = () => {
-  inRun = true;
-  stageIndex = 0;
-  wins = 0;
-  owned = [...carry];
-  carry = [];
-  events = [];
-  startStage();
+$("#best").textContent = best;
+const ui = {
+  hp: $("#hp"),
+  fill: $("#hp i"),
+  label: $("#hp-label"),
+  combo: $("#combo"),
+  comboFill: $("#combo-fill"),
+  caption: $("#reaction-caption"),
+  hint: $("#play-hint"),
+  status: $("#bag-status"),
+  target: $("#target"),
+  punch: $("#punch"),
 };
-function finish(result) {
-  running = false;
-  wins += result === "win" ? 1 : 0;
-  hype += result === "win" ? 30 : 10;
-  saveMeta();
-  $("#result-label").textContent =
-    `STAGE ${stageIndex + 1} / 5 · ${result === "win" ? "+30" : "+10"} HYPE`;
-  $("#result-title").textContent =
-    result === "win" ? "친구들이 해냈다!" : "쓰러져도 전설은 계속!";
-  $("#result-copy").textContent =
-    stageIndex === 4
-      ? `런 완료 · ${wins}/5 승리. 다음 런에 가져갈 장난감을 고르세요.`
-      : "세 장 중 하나를 고르면, 모두 회복하고 다음 아레나로 이동해요.";
-  let choices = upgradeChoices(owned).filter(
-    (u) => u.id !== "orbit" || hype >= 100,
-  );
-  if (choices.length < 3)
-    choices = upgrades
-      .filter((u) => u.id !== "orbit" || hype >= 100)
-      .sort(
-        (a, b) => Number(owned.includes(a.id)) - Number(owned.includes(b.id)),
-      )
-      .slice(0, 3);
-  $("#cards").replaceChildren(
-    ...choices.map((u) => {
-      const b = document.createElement("button");
-      b.className = "upgrade";
-      const icon = document.createElement("span");
-      icon.textContent = u.icon;
-      const title = document.createElement("strong");
-      title.textContent = u.name;
-      const desc = document.createElement("p");
-      desc.textContent =
-        u.description +
-        (owned.includes(u.id) ? " (중복 선택: 효과가 한 겹 더 추가돼요)" : "");
-      b.append(icon, title, desc);
-      b.onclick = () => {
-        owned.push(u.id);
-        $("#result").close();
-        if (stageIndex < 4) {
-          stageIndex++;
-          startStage();
-        } else {
-          carry = [u.id];
-          inRun = false;
-          $("#overlay").classList.remove("hidden");
-          $("#overlay").textContent =
-            `${wins}/5 승리 · ${u.name} 준비 완료! 새 런을 시작하세요.`;
-          $("#start").textContent = "새로운 5 스테이지 ↗";
-          renderRoster();
-          renderRoute();
-        }
-      };
-      return b;
-    }),
-  );
-  $("#result").showModal();
-  renderRoster();
+function announce(message) {
+  $("#announcement").textContent = message;
 }
-$("#result").oncancel = (e) => e.preventDefault();
-function burst(x, y, color, n = 10) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2;
-    particles.push({
-      x,
-      y,
-      vx: Math.cos(a) * (50 + Math.random() * 150),
-      vy: Math.sin(a) * (50 + Math.random() * 150),
-      life: 0.4,
-      color,
-    });
+function updateUI() {
+  ui.label.textContent = `체력 ${state.hp} / ${MAX_HP}`;
+  ui.hp.setAttribute("aria-valuenow", state.hp);
+  ui.fill.style.transform = `scaleX(${state.hp / MAX_HP})`;
+  ui.combo.firstChild.textContent = state.combo;
+  renderer.reaction = forcedReaction ?? state.reaction;
+  ui.caption.textContent = REACTIONS[renderer.reaction].caption;
+  for (const button of document.querySelectorAll("[data-reaction]")) {
+    const i = Number(button.dataset.reaction),
+      unlocked = i <= state.unlocked;
+    button.disabled = !unlocked;
+    button.dataset.unlocked = unlocked;
+    const selected = i === (forcedReaction ?? 0);
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-pressed", selected);
+  }
+  ui.status.textContent =
+    state.hp === 0
+      ? "KO! 잠깐 웃고 가실게요."
+      : state.hits
+        ? state.combo >= 10
+          ? "콤보 폭발! 우정은 안전해요."
+          : "좋아, 한 번 더 톡!"
+        : "말랑이, 준비 완료!";
+  ui.hint.textContent =
+    state.hp === 0
+      ? "이번 판 완료 · 바로 다시 도전!"
+      : state.combo >= 10
+        ? "표정 모두 발견! 콤보를 이어 보세요"
+        : state.combo >= 6
+          ? "10콤보면 콧수염이 짠!"
+          : state.combo >= 3
+            ? "6콤보면 눈이 빙글빙글"
+            : "연속 3번이면 첫 표정 등장";
+  ui.target.disabled = ui.punch.disabled = state.hp === 0;
+  $("#upload").disabled = $("#recrop").disabled = state.hp === 0;
+}
+function playSound(ko) {
+  if (!sound) return;
+  try {
+    audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === "suspended")
+      audioContext.resume().catch(() => {});
+    const osc = audioContext.createOscillator(),
+      gain = audioContext.createGain(),
+      t = audioContext.currentTime;
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(ko ? 440 : 155 + state.combo * 3, t);
+    osc.frequency.exponentialRampToValueAtTime(ko ? 90 : 45, t + 0.13);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+  } catch {
+    sound = false;
+    $("#sound").textContent = "소리 사용 불가";
+    $("#sound").setAttribute("aria-pressed", "false");
   }
 }
-function hit(target, amount, source, force = 90) {
-  if (target.hp <= 0) return;
-  if (target.guard) {
-    target.guard--;
-    burst(target.x, target.y, "#99f5ff");
+function performPunch(direction = state.hits % 2 ? 1 : -1) {
+  if ($("#crop-dialog").open || $("#result").open || document.hidden) return;
+  const oldUnlock = state.unlocked,
+    hit = punch(state, performance.now());
+  if (!hit) return;
+  renderer.hit(direction, hit.ko);
+  playSound(hit.ko);
+  updateUI();
+  if (state.bestCombo > best) {
+    best = state.bestCombo;
+    $("#best").textContent = best;
+  }
+  if (state.unlocked > oldUnlock)
+    announce(
+      `${REACTIONS[state.unlocked].name} 표정 발견! ${state.combo} 콤보`,
+    );
+  if (hit.ko) {
+    kos++;
+    $("#kos").textContent = kos;
+    try {
+      localStorage.setItem("sandbag-best", String(best));
+    } catch {}
+    $("#result-hits").textContent = state.hits;
+    $("#result-combo").textContent = state.bestCombo;
+    $("#result-time").textContent = roundSeconds(state).toFixed(1);
+    announce(
+      `KO! ${state.hits}번 펀치, 최고 ${state.bestCombo} 콤보. 한 판 더 도전해요.`,
+    );
+    resultTimer = setTimeout(() => {
+      $("#result").showModal();
+      $("#retry").focus();
+    }, 650);
+  }
+}
+ui.target.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || !renderer.hitTest(event.clientX, event.clientY))
+    return;
+  event.preventDefault();
+  ui.target.focus({ preventScroll: true });
+  performPunch(
+    event.clientX <
+      renderer.canvas.getBoundingClientRect().left + renderer.width / 2
+      ? -1
+      : 1,
+  );
+});
+ui.target.addEventListener("click", (event) => {
+  if (event.detail === 0) performPunch();
+});
+ui.punch.onclick = () => performPunch();
+for (const button of [ui.target, ui.punch])
+  button.addEventListener("keydown", (event) => {
+    if (event.repeat && [" ", "Enter"].includes(event.key))
+      event.preventDefault();
+  });
+document.addEventListener("keydown", (event) => {
+  if (
+    event.code !== "Space" ||
+    event.repeat ||
+    /INPUT|BUTTON|A|TEXTAREA|SELECT/.test(event.target.tagName) ||
+    $("#crop-dialog").open ||
+    $("#result").open
+  )
+    return;
+  event.preventDefault();
+  performPunch();
+});
+$("#retry").onclick = () => {
+  clearTimeout(resultTimer);
+  $("#result").close();
+  state = newRound();
+  forcedReaction = null;
+  rounds++;
+  $("#round-number").textContent = String(rounds).padStart(2, "0");
+  renderer.reset();
+  updateUI();
+  ui.comboFill.style.transform = "scaleX(0)";
+  $("#save-status").textContent = "사진은 저장 버튼을 누를 때만 만들어져요.";
+  ui.punch.focus({ preventScroll: true });
+  announce("새 샌드백 준비 완료!");
+};
+$("#result").addEventListener("cancel", (event) => {
+  event.preventDefault();
+  $("#retry").click();
+});
+for (const button of document.querySelectorAll("[data-reaction]"))
+  button.onclick = () => {
+    const i = Number(button.dataset.reaction);
+    forcedReaction = i === 0 ? null : i;
+    updateUI();
+    renderer.draw();
+  };
+$("#sound").onclick = () => {
+  sound = !sound;
+  $("#sound").textContent = sound ? "소리 켜짐" : "소리 꺼짐";
+  $("#sound").setAttribute("aria-pressed", sound);
+  if (sound) playSound(false);
+};
+$("#motion").onclick = () => {
+  renderer.reduced = !renderer.reduced;
+  $("#motion").setAttribute("aria-pressed", renderer.reduced);
+};
+reducedQuery.addEventListener("change", (event) => {
+  renderer.reduced = event.matches;
+  $("#motion").setAttribute("aria-pressed", renderer.reduced);
+});
+new ResizeObserver(() => {
+  renderer.resize();
+  renderer.draw();
+}).observe(renderer.canvas);
+function frame(now) {
+  const elapsed = previous ? now - previous : 16.67;
+  previous = now;
+  if (state.hp > 0 && expireCombo(state, now)) {
+    ui.combo.firstChild.textContent = 0;
+    ui.hint.textContent = "잠깐 쉬었네요. 다시 톡톡, 콤보 시작!";
+  }
+  renderer.frame(Math.min(elapsed / 1000, 0.033));
+  if (state.combo && state.hp > 0)
+    ui.comboFill.style.transform = `scaleX(${Math.max(0, 1 - (now - state.lastHit) / COMBO_MS)})`;
+  else ui.comboFill.style.transform = "scaleX(0)";
+  frames.push(elapsed);
+  if (frames.length > 180) frames.shift();
+  if (now - fpsTime > 1000) {
+    fpsTime = now;
+    const fps = Math.round(
+      1000 / (frames.reduce((a, b) => a + b, 0) / frames.length),
+    );
+    $("#fps").textContent = `${fps} FPS · 가볍게 톡톡`;
+  }
+  raf = requestAnimationFrame(frame);
+}
+document.addEventListener("visibilitychange", () => {
+  cancelAnimationFrame(raf);
+  previous = 0;
+  frames = [];
+  // Background time never keeps a combo alive; the round remains available on return.
+  if (document.hidden) {
+    if (state.hp > 0) {
+      state.combo = 0;
+      ui.combo.firstChild.textContent = 0;
+    }
+  } else raf = requestAnimationFrame(frame);
+});
+updateUI();
+raf = requestAnimationFrame(frame);
+
+// Photos stay in memory. The source is bounded once; every game frame uses a 320px crop.
+let source = null,
+  candidate = null,
+  cropOffset = { x: 0, y: 0 },
+  cropZoom = 1,
+  drag = null,
+  photoVersion = 0;
+const cropCanvas = $("#crop"),
+  cropCtx = cropCanvas.getContext("2d");
+const cropDialog = $("#crop-dialog");
+function cropRect() {
+  return cropPosition(
+    candidate.width,
+    candidate.height,
+    cropZoom,
+    cropOffset.x,
+    cropOffset.y,
+  );
+}
+function paintCrop() {
+  if (!candidate) return;
+  const rect = cropRect();
+  cropCtx.clearRect(0, 0, 320, 320);
+  cropCtx.drawImage(candidate, rect.x, rect.y, rect.w, rect.h);
+  cropCtx.strokeStyle = "#ffffff90";
+  cropCtx.lineWidth = 1;
+  cropCtx.setLineDash([4, 4]);
+  cropCtx.beginPath();
+  cropCtx.moveTo(160, 0);
+  cropCtx.lineTo(160, 320);
+  cropCtx.moveTo(0, 160);
+  cropCtx.lineTo(320, 160);
+  cropCtx.stroke();
+  cropCtx.setLineDash([]);
+}
+function syncCropControls() {
+  const scale =
+    Math.max(320 / candidate.width, 320 / candidate.height) * cropZoom;
+  for (const [axis, length] of [
+    ["x", candidate.width],
+    ["y", candidate.height],
+  ]) {
+    const limit = Math.max(0, (length * scale - 320) / 2);
+    cropOffset[axis] = Math.max(-limit, Math.min(limit, cropOffset[axis]));
+    $(`#crop-${axis}`).min = -limit;
+    $(`#crop-${axis}`).max = limit;
+    $(`#crop-${axis}`).value = cropOffset[axis];
+  }
+}
+function openCrop(image) {
+  candidate = image;
+  cropOffset = { x: 0, y: 0 };
+  cropZoom = 1;
+  $("#zoom").value = 1;
+  syncCropControls();
+  paintCrop();
+  cropDialog.showModal();
+}
+$("#upload").onclick = () => $("#photo").click();
+$("#photo").onchange = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const version = ++photoVersion;
+  $("#photo").value = "";
+  if (
+    !/^image\/(jpeg|png|webp|avif|gif)$/.test(file.type) ||
+    file.size > 12 * 1024 * 1024
+  ) {
+    $("#photo-status").textContent =
+      "12MB 이하의 JPG, PNG, WebP, AVIF, GIF 사진을 골라 주세요.";
     return;
   }
-  if (target.trait.id === "shield") amount *= 0.55;
-  target.hp = Math.max(0, target.hp - amount);
-  target.hit = 0.18;
-  const a = Math.atan2(target.y - source.y, target.x - source.x);
-  target.vx += Math.cos(a) * force;
-  target.vy += Math.sin(a) * force;
-  target.spin += (Math.random() - 0.5) * 10;
-  if (
-    (source.team === 0 && owned.includes("ice")) ||
-    source.trait?.id === "ice"
-  )
-    target.slow = 2 + (source.team === 0 ? stacks("ice") : 0);
-  burst(target.x, target.y, target.slow ? "#9fefff" : target.color);
-  shake = 4;
-  if (!target.hp) log(`${target.name} 퇴장!`);
-}
-function shoot(f, target, kind = f.trait.id, origin = f) {
-  const a = Math.atan2(target.y - origin.y, target.x - origin.x);
-  shots.push({
-    x: origin.x + Math.cos(a) * 42,
-    y: origin.y + Math.sin(a) * 42,
-    vx: Math.cos(a) * (kind === "gun" ? 400 : 260),
-    vy: Math.sin(a) * (kind === "gun" ? 400 : 260),
-    owner: f,
-    kind,
-    life: 4,
-    bounces:
-      f.team === 0 && owned.includes("ricochet") ? 2 * stacks("ricochet") : 0,
-  });
-  f.vx -= Math.cos(a) * 45;
-  f.vy -= Math.sin(a) * 45;
-  f.spin += 2;
-}
-function step(dt) {
-  elapsed += dt;
-  const alive = fighters.filter((f) => f.hp > 0);
-  for (const f of alive) {
-    const targets = alive.filter((t) => t.team !== f.team);
-    const target = targets.sort(
-      (a, b) =>
-        Math.hypot(a.x - f.x, a.y - f.y) - Math.hypot(b.x - f.x, b.y - f.y),
-    )[0];
-    if (!target) continue;
-    const dx = target.x - f.x,
-      dy = target.y - f.y,
-      d = Math.hypot(dx, dy) || 1;
-    const ranged = ["ranged", "magic", "freeze", "blast", "drone"].includes(
-      f.trait.behavior,
-    );
-    const retreat = (ranged && d < 220) || (f.trait.id === "shield" && d < 180);
-    const speed =
-      (f.slow > 0 ? 42 : f.trait.id === "axe" ? 130 : 85) * (retreat ? -1 : 1);
-    f.vx += ((dx / d) * speed - f.vx) * dt * 2;
-    f.vy += ((dy / d) * speed - f.vy) * dt * 2;
-    f.x += f.vx * dt;
-    f.y += f.vy * dt;
-    f.slow = Math.max(0, f.slow - dt);
-    f.hit = Math.max(0, f.hit - dt);
-    f.angle +=
-      Math.atan2(
-        Math.sin(Math.atan2(dy, dx) - f.angle),
-        Math.cos(Math.atan2(dy, dx) - f.angle),
-      ) *
-        dt *
-        3 +
-      f.spin * dt;
-    f.spin *= Math.exp(-dt * 4);
-    for (const [p, v, max] of [
-      ["x", "vx", W],
-      ["y", "vy", H],
-    ])
-      if (f[p] < f.r + 15 || f[p] > max - f.r - 15) {
-        f[p] = Math.max(f.r + 15, Math.min(max - f.r - 15, f[p]));
-        f[v] *= -0.8;
-        f.spin += f[v] * 0.015;
-      }
-    if (elapsed >= f.next) {
-      f.next = elapsed + (f.trait.id === "gun" ? 0.65 : 1.6);
-      if (ranged) shoot(f, target);
-      if (f.team === 0 && owned.includes("ricochet") && !ranged)
-        shoot(f, target, "gun");
-      if (f.trait.id === "axe") {
-        f.vx += (dx / d) * 300;
-        f.vy += (dy / d) * 300;
-        burst(f.x, f.y, f.color, 4);
-      }
-      if (f.trait.id === "magnet")
-        for (const t of targets) {
-          t.vx -= (t.x - f.x) * 0.8;
-          t.vy -= (t.y - f.y) * 0.8;
-          burst(t.x, t.y, "#ee95cf", 3);
-        }
-      if (f.trait.id === "snack") {
-        f.hp = Math.min(f.maxHp, f.hp + 9);
-        burst(f.x, f.y, "#d5ff63");
-      }
-      const reach =
-        f.r +
-        target.r +
-        (f.team === 0 && owned.includes("giant")
-          ? 45 + 40 * stacks("giant")
-          : 45);
-      if (d < reach) {
-        hit(target, f.boss ? 14 : 10, f, f.trait.id === "pan" ? 380 : 100);
-        f.spin += 5;
-      }
-    }
-  }
-  for (let i = 0; i < alive.length; i++)
-    for (let j = i + 1; j < alive.length; j++) {
-      const a = alive[i],
-        b = alive[j],
-        dx = b.x - a.x,
-        dy = b.y - a.y,
-        d = Math.hypot(dx, dy) || 1,
-        over = a.r + b.r - d;
-      if (over > 0) {
-        a.x -= ((dx / d) * over) / 2;
-        b.x += ((dx / d) * over) / 2;
-        a.y -= ((dy / d) * over) / 2;
-        b.y += ((dy / d) * over) / 2;
-        const impulse = ((b.vx - a.vx) * dx) / d + ((b.vy - a.vy) * dy) / d;
-        if (impulse < 0) {
-          a.vx += (impulse * dx) / d;
-          b.vx -= (impulse * dx) / d;
-          a.vy += (impulse * dy) / d;
-          b.vy -= (impulse * dy) / d;
-          a.spin += 2;
-          b.spin -= 2;
-        }
-      }
-    }
-  for (const p of pets) {
-    if (p.owner.hp <= 0) continue;
-    const target = alive
-      .filter((t) => t.team !== p.owner.team)
-      .sort(
-        (a, b) =>
-          Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y),
-      )[0];
-    if (!target) continue;
-    if (p.kind === "drone") {
-      p.x = p.owner.x + Math.cos(elapsed * 2 + p.phase) * 70;
-      p.y = p.owner.y + Math.sin(elapsed * 2 + p.phase) * 70;
-      if (elapsed > p.next) {
-        shoot(p.owner, target, "laser", p);
-        p.next = elapsed + 1.4;
-      }
-    } else {
-      const d = Math.hypot(target.x - p.x, target.y - p.y) || 1;
-      p.x += ((target.x - p.x) / d) * 160 * dt;
-      p.y += ((target.y - p.y) / d) * 160 * dt;
-      if (d < target.r + 20 && elapsed > p.next) {
-        hit(target, 6, p.owner);
-        p.next = elapsed + 1;
-      }
-    }
-  }
-  for (const s of shots) {
-    s.x += s.vx * dt;
-    s.y += s.vy * dt;
-    s.life -= dt;
-    if (s.x < 8 || s.x > W - 8 || s.y < 8 || s.y > H - 8) {
-      if (s.bounces > 0) {
-        if (s.x < 8 || s.x > W - 8) s.vx *= -1;
-        if (s.y < 8 || s.y > H - 8) s.vy *= -1;
-        s.bounces--;
-        burst(s.x, s.y, "#fff", 5);
-      } else s.life = 0;
-    }
-    for (const f of alive) {
-      if (f.hp <= 0 || f.team === s.owner.team || s.life <= 0) continue;
-      if (Math.hypot(s.x - f.x, s.y - f.y) < f.r + 8) {
-        hit(f, s.kind === "wand" ? 12 : 7, s.owner);
-        if (s.kind === "bomb")
-          for (const other of alive.filter(
-            (t) =>
-              t !== f &&
-              t.team !== s.owner.team &&
-              Math.hypot(t.x - f.x, t.y - f.y) < 110,
-          ))
-            hit(other, 10, s.owner, 180);
-        s.life = 0;
-      }
-    }
-  }
-  shots = shots.filter((s) => s.life > 0);
-  const active = elapsed % 8 >= 6;
-  for (const f of alive) {
-    if (stageIndex === 0 && active && Math.abs(f.x - 450) < 65)
-      f.vy -= 250 * dt;
-    if (stageIndex === 4) {
-      f.vx += (450 - f.x) * dt * 0.35;
-      f.vy += (300 - f.y) * dt * 0.35;
-    }
-    const danger =
-      stageIndex === 1
-        ? Math.abs(f.x - 450) < 65
-        : stageIndex === 2 || stageIndex === 4
-          ? Math.hypot(f.x - 450, f.y - 300) < 100
-          : stageIndex === 3
-            ? Math.abs(f.y - 300) < 45
-            : false;
-    if (active && danger) {
-      f.hp = Math.max(0, f.hp - 7 * dt);
-      f.hit = 0.08;
-    }
-  }
-  for (const p of particles) {
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.life -= dt;
-  }
-  particles = particles.filter((p) => p.life > 0);
-  shake *= Math.exp(-dt * 12);
-  if (pendingBoss && elapsed >= 40) {
-    const boss = makeFighter(pendingBoss, 1, 0, 1);
-    boss.next = elapsed + 1;
-    fighters.push(boss);
-    if (boss.trait.id === "wolf" || boss.trait.id === "drone")
-      pets.push({
-        owner: boss,
-        kind: boss.trait.id,
-        phase: 0,
-        x: boss.x,
-        y: boss.y,
-        next: elapsed + 1,
-      });
-    log(`${boss.name} 출현! 최종 공세를 막으세요.`);
-    $("#status").textContent = `● ${stages[stageIndex].name} · ${boss.name}`;
-    pendingBoss = null;
-  }
-  const result = stageResult(fighters, elapsed);
-  if (result === "win" && pendingBoss) {
-    const s = stages[stageIndex];
-    const guard = makeFighter(
-      {
-        name: `${s.name} 지원군`,
-        emoji: s.icon,
-        color: s.color,
-        trait: traits.find((t) => t.id === s.npc),
-      },
-      1,
-      0,
-      1,
-    );
-    guard.next = elapsed + 1;
-    fighters.push(guard);
-    log("적 지원군 도착 · 보스가 다가오고 있어요!");
-  } else if (result) finish(result);
-}
-function circle(x, y, r, fill) {
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = fill;
-  ctx.fill();
-}
-function draw() {
-  const s = stages[stageIndex];
-  ctx.save();
-  ctx.clearRect(0, 0, W, H);
-  ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  ctx.fillStyle = s.bg;
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = s.color + "24";
-  for (let x = 25; x < W; x += 40)
-    for (let y = 25; y < H; y += 40) ctx.fillRect(x, y, 2, 2);
-  ctx.strokeStyle = s.color + "50";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(14, 14, W - 28, H - 28);
-  ctx.textAlign = "center";
-  ctx.font = "900 65px sans-serif";
-  ctx.fillStyle = s.color + "13";
-  ctx.fillText(s.english.toUpperCase(), 450, 330);
-  const active = elapsed % 8 >= 6;
-  ctx.fillStyle = active ? "#ff715955" : s.color + "15";
-  if (stageIndex === 1) ctx.fillRect(385, 15, 130, 570);
-  else if (stageIndex === 3) ctx.fillRect(15, 255, 870, 90);
-  else circle(450, 300, stageIndex === 0 ? 65 : 100, ctx.fillStyle);
-  ctx.font = "12px sans-serif";
-  ctx.fillStyle = s.color;
-  ctx.fillText(
-    active ? "⚠ 위험 구역 활성" : "위험 구역 · 점멸 후 활성",
-    450,
-    570,
-  );
-  const visible = fighters.length
-    ? fighters
-    : roster.map((f, i) => ({
-        ...f,
-        x: 170 + i * 180,
-        y: 300,
-        r: 33,
-        angle: Math.sin(performance.now() / 1500 + i) * 0.3,
-        hp: 150,
-        maxHp: 150,
-        team: 0,
-      }));
-  for (const f of visible) {
-    ctx.save();
-    ctx.translate(f.x, f.y);
-    ctx.globalAlpha = f.hp > 0 ? 1 : 0.18;
-    ctx.rotate(f.angle || 0);
-    if (f.hit > 0) ctx.scale(1.18, 0.84);
-    ctx.shadowColor = "#0009";
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 9;
-    circle(0, 0, f.r + 5, "#101318");
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    circle(0, 0, f.r, f.color);
-    ctx.save();
-    circle(0, 0, f.r - 6, "#373c46");
-    ctx.clip();
-    if (f.face)
-      ctx.drawImage(f.face, -f.r + 6, -f.r + 6, (f.r - 6) * 2, (f.r - 6) * 2);
-    else {
-      ctx.font = `${f.r * 1.25}px sans-serif`;
-      ctx.fillText(f.emoji, 0, f.r * 0.44);
-    }
-    if (f.hit > 0) {
-      ctx.fillStyle = "#ffffffa0";
-      ctx.fillRect(-f.r, -f.r, f.r * 2, f.r * 2);
-    }
-    ctx.restore();
-    const big = f.team === 0 && owned.includes("giant");
-    ctx.font = `${big ? 56 + 22 * stacks("giant") : f.boss ? 76 : 56}px sans-serif`;
-    ctx.strokeStyle = "#111";
-    ctx.lineWidth = 5;
-    ctx.strokeText(f.trait.prop, f.r + 21, 18);
-    ctx.fillText(f.trait.prop, f.r + 21, 18);
-    if (f.guard > 0) {
-      ctx.strokeStyle = "#97f3ff";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(0, 0, f.r + 13, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    if (f.slow > 0) {
-      ctx.font = "22px sans-serif";
-      ctx.fillText("❄️", -f.r, 0);
-    }
-    ctx.restore();
-    ctx.fillStyle = f.team === 1 ? "#ffb2a3" : "#fff";
-    ctx.font = `${f.boss ? "bold " : ""}14px sans-serif`;
-    ctx.fillText(f.name, f.x, f.y - f.r - 23);
-    ctx.fillStyle = "#0008";
-    ctx.fillRect(f.x - 30, f.y - f.r - 16, 60, 4);
-    ctx.fillStyle = f.color;
-    ctx.fillRect(f.x - 30, f.y - f.r - 16, (60 * f.hp) / f.maxHp, 4);
-  }
-  for (const p of pets)
-    if (p.owner.hp > 0) {
-      ctx.font = "32px sans-serif";
-      ctx.fillText(p.kind === "wolf" ? "🐺" : "🛸", p.x, p.y);
-    }
-  for (const s of shots) {
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(Math.atan2(s.vy, s.vx));
-    if (["bomb", "ice"].includes(s.kind)) {
-      ctx.font = "23px sans-serif";
-      ctx.fillText(s.kind === "bomb" ? "💣" : "❄️", 0, 8);
-    } else {
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = s.owner.color;
-      ctx.fillStyle = s.owner.color;
-      ctx.fillRect(
-        -10,
-        -3,
-        s.kind === "bow" ? 30 : 17,
-        s.kind === "wand" ? 13 : 6,
-      );
-    }
-    ctx.restore();
-  }
-  for (const p of particles) {
-    ctx.globalAlpha = p.life / 0.4;
-    circle(p.x, p.y, 3, p.color);
-  }
-  ctx.restore();
-}
-let ui = 0;
-function frame(now) {
-  const dt = Math.min((now - last) / 1000, 0.035);
-  last = now;
-  if (running) step(dt);
-  draw();
-  if (now - ui > 250) {
-    ui = now;
-    $("#timer").textContent = `${Math.max(0, Math.ceil(60 - elapsed))}초`;
-    document.querySelectorAll("[data-action]").forEach((b) => {
-      b.disabled = !running || elapsed < cooldown;
-      b.title =
-        elapsed < cooldown ? `${Math.ceil(cooldown - elapsed)}초 후 사용` : "";
-    });
-    if (running)
-      roster.forEach((f, i) => {
-        const live = fighters.find((x) => x.rosterIndex === i);
-        const bar = $("#roster").children[i]?.querySelector(".bar i");
-        if (bar && live) bar.style.width = `${(100 * live.hp) / live.maxHp}%`;
-      });
-  }
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-renderRoster();
-renderRoute();
-for (const button of document.querySelectorAll("[data-action]"))
-  button.onclick = () => {
-    if (!running || elapsed < cooldown) return;
-    cooldown = elapsed + 5;
-    for (const f of fighters.filter((f) => f.hp > 0)) {
-      if (button.dataset.action === "heal") {
-        if (f.team === 0) {
-          f.hp = Math.min(f.maxHp, f.hp + 25);
-          burst(f.x, f.y, "#d5ff63");
-        }
-      } else if (button.dataset.action === "wind") f.vx += 330;
-      else {
-        const angle = Math.random() * Math.PI * 2;
-        f.vx = Math.cos(angle) * 450;
-        f.vy = Math.sin(angle) * 450;
-        f.spin += 12;
-      }
-    }
-    log(`관전자 개입 · ${button.textContent}`);
-  };
-$("#add").onsubmit = (e) => {
-  e.preventDefault();
-  if (inRun || roster.length >= 6) return;
-  const name = $("#name").value.trim();
-  if (!name) return;
-  roster.push({
-    name,
-    emoji: "🤩",
-    face: pendingFace,
-    color: colors.find((c) => !roster.some((f) => f.color === c)) || colors[0],
-    trait: rollTrait(),
-  });
-  pendingFace = null;
-  $("#add").reset();
-  $("#photo-status").textContent = "사진은 이 브라우저 안에서만 처리돼요.";
-  fighters = [];
-  renderRoster();
-};
-// FaceDetector never sends image pixels to a server. Unsupported browsers use the same local crop editor.
-let source,
-  scale = 1,
-  base = 1,
-  offset = { x: 0, y: 0 },
-  drag;
-const crop = $("#crop"),
-  cc = crop.getContext("2d");
-function paintCrop() {
-  cc.clearRect(0, 0, 360, 360);
-  cc.fillStyle = "#101318";
-  cc.fillRect(0, 0, 360, 360);
-  const s = base * scale;
-  cc.drawImage(source, offset.x, offset.y, source.width * s, source.height * s);
-  cc.fillStyle = "#0009";
-  cc.beginPath();
-  cc.rect(0, 0, 360, 360);
-  cc.arc(180, 180, 140, 0, Math.PI * 2, true);
-  cc.fill("evenodd");
-  cc.strokeStyle = "#d5ff63";
-  cc.lineWidth = 2;
-  cc.beginPath();
-  cc.arc(180, 180, 140, 0, Math.PI * 2);
-  cc.stroke();
-}
-$("#photo").onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  pendingFace = null;
-  $("#add-button").disabled = true;
-  $("#photo-status").textContent = "얼굴 확인 중…";
+  $("#photo-status").textContent = "사진을 준비하고 있어요…";
+  $("#upload").disabled = true;
   const url = URL.createObjectURL(file);
   try {
-    source = new Image();
-    source.src = url;
-    await source.decode();
-    base = Math.max(360 / source.width, 360 / source.height);
-    scale = 1;
-    offset = {
-      x: (360 - source.width * base) / 2,
-      y: (360 - source.height * base) / 2,
-    };
-    let detected = false;
-    if ("FaceDetector" in window) {
-      try {
-        const faces = await new window.FaceDetector({
-          fastMode: true,
-          maxDetectedFaces: 1,
-        }).detect(source);
-        if (faces.length) {
-          const b = faces[0].boundingBox;
-          base = 280 / (Math.max(b.width, b.height) * 1.35);
-          offset = {
-            x: 180 - (b.x + b.width / 2) * base,
-            y: 180 - (b.y + b.height / 2) * base,
-          };
-          detected = true;
-        }
-      } catch {}
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    if (version !== photoVersion || state.hp === 0) {
+      $("#photo-status").textContent = "한 판 더 시작한 뒤 사진을 골라 주세요.";
+      return;
     }
-    $("#crop-message").textContent = detected
-      ? "얼굴을 찾았어요! 위치를 확인하고 조절하세요."
-      : "자동 감지를 사용할 수 없어요. 직접 얼굴을 맞춰주세요.";
-    $("#zoom").value = 1;
-    paintCrop();
-    $("#crop-dialog").showModal();
+    if (img.naturalWidth * img.naturalHeight > 40_000_000)
+      throw new Error("large");
+    const bounded = document.createElement("canvas"),
+      scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    bounded.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    bounded.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    bounded
+      .getContext("2d")
+      .drawImage(img, 0, 0, bounded.width, bounded.height);
+    openCrop(bounded);
+    $("#photo-status").textContent =
+      "위치를 맞추고 이 얼굴로 놀기를 눌러 주세요.";
   } catch {
     $("#photo-status").textContent =
-      "사진을 열 수 없어요. 다른 이미지로 다시 시도하세요.";
+      "사진을 열 수 없어요. 4천만 화소 이하의 다른 사진으로 다시 시도해 주세요.";
   } finally {
     URL.revokeObjectURL(url);
-    renderRoster();
+    $("#upload").disabled = state.hp === 0;
   }
 };
-crop.onpointerdown = (e) => {
-  drag = { x: e.clientX, y: e.clientY };
-  crop.setPointerCapture(e.pointerId);
-};
-crop.onpointermove = (e) => {
-  if (!drag) return;
-  const ratio = 360 / crop.getBoundingClientRect().width;
-  offset.x += (e.clientX - drag.x) * ratio;
-  offset.y += (e.clientY - drag.y) * ratio;
-  drag = { x: e.clientX, y: e.clientY };
+$("#zoom").oninput = (event) => {
+  cropZoom = Number(event.target.value);
+  syncCropControls();
   paintCrop();
 };
-crop.onpointerup = crop.onpointercancel = () => (drag = null);
-$("#zoom").oninput = (e) => {
-  const next = Number(e.target.value);
-  offset.x = 180 + ((offset.x - 180) * next) / scale;
-  offset.y = 180 + ((offset.y - 180) * next) / scale;
-  scale = next;
+for (const axis of ["x", "y"])
+  $(`#crop-${axis}`).oninput = (event) => {
+    cropOffset[axis] = Number(event.target.value);
+    paintCrop();
+  };
+cropCanvas.onpointerdown = (event) => {
+  if (event.button !== 0) return;
+  drag = { x: event.clientX, y: event.clientY, id: event.pointerId };
+  cropCanvas.setPointerCapture(event.pointerId);
+};
+cropCanvas.onpointermove = (event) => {
+  if (!drag || drag.id !== event.pointerId) return;
+  const ratio = 320 / cropCanvas.getBoundingClientRect().width;
+  cropOffset.x += (event.clientX - drag.x) * ratio;
+  cropOffset.y += (event.clientY - drag.y) * ratio;
+  drag.x = event.clientX;
+  drag.y = event.clientY;
+  syncCropControls();
   paintCrop();
 };
-$("#save-crop").onclick = async () => {
-  const out = document.createElement("canvas");
-  out.width = out.height = 280;
-  const c = out.getContext("2d");
-  c.beginPath();
-  c.arc(140, 140, 140, 0, Math.PI * 2);
-  c.clip();
-  c.drawImage(
-    source,
-    offset.x - 40,
-    offset.y - 40,
-    source.width * base * scale,
-    source.height * base * scale,
+cropCanvas.onpointerup =
+  cropCanvas.onpointercancel =
+  cropCanvas.onlostpointercapture =
+    () => {
+      drag = null;
+    };
+$("#save-crop").onclick = () => {
+  if (!candidate) return;
+  const face = document.createElement("canvas");
+  face.width = face.height = 320;
+  const r = cropRect();
+  face.getContext("2d").drawImage(candidate, r.x, r.y, r.w, r.h);
+  source = candidate;
+  renderer.face = face;
+  const avatar = new Image();
+  avatar.src = face.toDataURL("image/png");
+  avatar.alt = "";
+  $("#avatar").replaceChildren(avatar);
+  $("#face-name").textContent = "오늘의 말랑한 친구";
+  $("#photo-options").hidden = false;
+  cropDialog.close();
+  renderer.draw();
+  announce("친구 얼굴 준비 완료. 샌드백을 톡 눌러 보세요.");
+};
+$("#cancel-crop").onclick = () => cropDialog.close();
+cropDialog.addEventListener("close", () => {
+  candidate = null;
+  drag = null;
+  $("#photo-status").textContent = renderer.face
+    ? "얼굴 준비 완료! 사진은 서버로 전송되지 않아요."
+    : "사진 없이도 바로 놀 수 있어요. 사진은 이 기기 안에서만 사용해요.";
+});
+$("#recrop").onclick = () => {
+  if (source) openCrop(source);
+};
+$("#remove-photo").onclick = () => {
+  photoVersion++;
+  source = null;
+  renderer.face = null;
+  $("#avatar").textContent = "☺";
+  $("#face-name").textContent = "연습 친구, 말랑이";
+  $("#photo-options").hidden = true;
+  $("#photo-status").textContent =
+    "기본 얼굴로 돌아왔어요. 사진은 이 기기 안에서만 사용해요.";
+  renderer.draw();
+};
+$("#save-card").onclick = () => {
+  const card = document.createElement("canvas");
+  card.width = 720;
+  card.height = 800;
+  const c = card.getContext("2d");
+  c.fillStyle = "#f5f2e9";
+  c.fillRect(0, 0, 720, 800);
+  c.fillStyle = "#262720";
+  c.textAlign = "center";
+  c.font = "900 24px sans-serif";
+  c.fillText("FRIENDSMASH / 친구 샌드백", 360, 61);
+  c.font = "900 47px sans-serif";
+  c.fillText("툭 치면, 빵 터진다.", 360, 123);
+  renderer.draw();
+  // Center-crop the stage so the friend's face stays large on the souvenir.
+  const sourceWidth = Math.min(
+    renderer.canvas.width,
+    renderer.canvas.height * 1.25,
   );
-  pendingFace = new Image();
-  pendingFace.src = out.toDataURL("image/png");
-  await pendingFace.decode();
-  $("#photo-status").textContent = "얼굴 준비 완료 · 친구 입장을 눌러주세요.";
-  $("#crop-dialog").close();
-};
-$("#cancel-crop").onclick = () => $("#crop-dialog").close();
-$("#crop-dialog").onclose = () => {
-  if (!pendingFace) {
-    $("#photo").value = "";
-    $("#photo-status").textContent =
-      "사진 선택 취소 · 이름만으로도 입장할 수 있어요.";
-  }
+  const ratio = Math.min(620 / sourceWidth, 500 / renderer.canvas.height);
+  const w = sourceWidth * ratio,
+    h = renderer.canvas.height * ratio;
+  c.drawImage(
+    renderer.canvas,
+    (renderer.canvas.width - sourceWidth) / 2,
+    0,
+    sourceWidth,
+    renderer.canvas.height,
+    (720 - w) / 2,
+    151 + (500 - h) / 2,
+    w,
+    h,
+  );
+  c.fillStyle = "#f86236";
+  c.font = "900 31px sans-serif";
+  c.fillText(`${state.hits} 펀치  ·  최고 ${state.bestCombo} 콤보`, 360, 704);
+  c.fillStyle = "#73766b";
+  c.font = "18px sans-serif";
+  c.fillText("장난은 가볍게. 친구는 소중하게.", 360, 752);
+  card.toBlob((blob) => {
+    if (!blob) {
+      $("#save-status").textContent =
+        "사진을 만들지 못했어요. 다시 눌러 주세요.";
+      return;
+    }
+    const url = URL.createObjectURL(blob),
+      link = document.createElement("a");
+    link.href = url;
+    link.download = "friend-sandbag-ko.png";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    $("#save-status").textContent =
+      "사진 저장을 요청했어요. 다운로드를 확인해 주세요.";
+  }, "image/png");
 };

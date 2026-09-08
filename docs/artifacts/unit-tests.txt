@@ -1,0 +1,64 @@
+
+> friend-smash@0.1.0 test
+> node --test tests/*.test.js
+
+TAP version 13
+# Subtest: twelve distinct visible kits span the toybox
+ok 1 - twelve distinct visible kits span the toybox
+  ---
+  duration_ms: 1.260744
+  ...
+# Subtest: reroll always changes kit including random boundaries
+ok 2 - reroll always changes kit including random boundaries
+  ---
+  duration_ms: 0.378877
+  ...
+# Subtest: all five stages have valid boss and NPC kits and unique hazards
+ok 3 - all five stages have valid boss and NPC kits and unique hazards
+  ---
+  duration_ms: 1.378543
+  ...
+# Subtest: offer three distinct upgrades even when every toy is owned
+ok 4 - offer three distinct upgrades even when every toy is owned
+  ---
+  duration_ms: 0.445131
+  ...
+# Subtest: only a living friendly team and defeated enemies win; timeout loses
+ok 5 - only a living friendly team and defeated enemies win; timeout loses
+  ---
+  duration_ms: 0.391997
+  ...
+# Subtest: one physical punch changes HP once; input flooding is bounded
+ok 6 - one physical punch changes HP once; input flooding is bounded
+  ---
+  duration_ms: 1.461578
+  ...
+# Subtest: combo survives the exact deadline, expires beyond it, and restarts at one
+ok 7 - combo survives the exact deadline, expires beyond it, and restarts at one
+  ---
+  duration_ms: 0.174507
+  ...
+# Subtest: three reaction milestones unlock and remain available after a combo break
+ok 8 - three reaction milestones unlock and remain available after a combo break
+  ---
+  duration_ms: 0.225005
+  ...
+# Subtest: KO clamps HP, stops extra punches, and retry starts without prior run state
+ok 9 - KO clamps HP, stops extra punches, and retry starts without prior run state
+  ---
+  duration_ms: 1.113717
+  ...
+# Subtest: crop stays covered for portrait, landscape, extreme drags, and zoom
+ok 10 - crop stays covered for portrait, landscape, extreme drags, and zoom
+  ---
+  duration_ms: 0.538092
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 148.964594

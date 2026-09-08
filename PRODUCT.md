@@ -1,5 +1,8 @@
-# FriendSmash v2
-Goal: sticky 5-8 min run with face pucks, visible kits, post-stage upgrades, stage themes.
-Visual: no stickmen; face disks + oversized props + VFX.
-Loop: roster → 40-70s fight → 3-card upgrade → next stage → unlocks with Hype.
-Stages: Backyard, Castle, Beast Pit, Neon Lab, Rift.
+# FriendSmash — Sandbag first
+
+Default: Korean one-face sandbag, immediate tap input, combo / HP / KO / retry.
+Feel: whole-bag squash, spring recoil, flat comic stickers, optional synthesized punch sound.
+Performance: one Canvas 2D loop, bounded particles and photo size, 60 FPS target.
+Photos: local crop only; retry retains the chosen face; reload clears it.
+Legacy: existing five-stage Smash stays independently playable as Classic.
+Scope: Sandbag only. No Friend Cannon, 3D physics, mesh deformation, weapons, or punchout expansion.

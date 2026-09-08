@@ -1,0 +1,77 @@
+{
+  "measuredAt": "2026-09-08T00:28:18.076Z",
+  "environment": "Headless Chromium on shared Linux runner; emulation is not physical phone validation",
+  "profiles": [
+    {
+      "name": "desktop-sandbag",
+      "durationMs": 8000,
+      "frames": 480,
+      "averageFps": 60,
+      "frameP95Ms": 16.7,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 0.6,
+      "framesOver25Ms": 0,
+      "kos": 1,
+      "canvasPixels": 368180,
+      "domNodes": 161,
+      "errors": []
+    },
+    {
+      "name": "mobile-sandbag",
+      "durationMs": 8000,
+      "frames": 479,
+      "averageFps": 60,
+      "frameP95Ms": 16.8,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 0.4,
+      "framesOver25Ms": 0,
+      "kos": 1,
+      "canvasPixels": 302211,
+      "domNodes": 161,
+      "errors": []
+    },
+    {
+      "name": "mobile-4x-cpu-sandbag",
+      "durationMs": 8000,
+      "frames": 480,
+      "averageFps": 60,
+      "frameP95Ms": 16.7,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 1.6,
+      "framesOver25Ms": 0,
+      "kos": 1,
+      "canvasPixels": 302211,
+      "domNodes": 161,
+      "errors": []
+    },
+    {
+      "name": "classic-first-stage",
+      "durationMs": 8000,
+      "frames": 480,
+      "averageFps": 60,
+      "frameP95Ms": 16.7,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 0.5,
+      "framesOver25Ms": 0,
+      "kos": 0,
+      "canvasPixels": 540000,
+      "domNodes": 166,
+      "errors": []
+    },
+    {
+      "name": "mobile-3-minute-soak",
+      "durationMs": 180000,
+      "frames": 10810,
+      "averageFps": 60,
+      "frameP95Ms": 16.7,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 0.3,
+      "framesOver25Ms": 0,
+      "kos": 39,
+      "canvasPixels": 302211,
+      "domNodes": 161,
+      "errors": []
+    }
+  ],
+  "browser": "153.0.8010.12"
+}
