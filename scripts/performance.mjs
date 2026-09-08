@@ -2,6 +2,7 @@ import { chromium, devices } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { writeFile, mkdir } from "node:fs/promises";
 const baseURL = "http://127.0.0.1:4183";
+const onlyProfile = process.argv.find(a => a.startsWith("--profile="))?.split("=")[1];
 const soakMs = Number(
   process.argv.find((a) => a.startsWith("--soak="))?.split("=")[1] || 180000,
 );
@@ -23,10 +24,12 @@ const results = {
   measuredAt: new Date().toISOString(),
   environment:
     "Headless Chromium on shared Linux runner; emulation is not physical phone validation",
+  budgets: { minimumFps: 57, frameP95Ms: 20, callbackP95Ms: 16.67, maxParticles: 32, maxLoops: 1, canvasPixels: 1000000, maxAudioVoices: 6 },
   profiles: [],
 };
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 try {
+  await mkdir("docs/artifacts", { recursive: true });
   for (let i = 0; i < 50; i++) {
     try {
       if ((await fetch(baseURL)).ok) break;
@@ -44,18 +47,21 @@ try {
       viewport: { width: 1440, height: 1000 },
       classic: true,
     },
+    { name: "mobile-finisher", ...devices["Pixel 7"], mode: "finisher" },
+    { name: "mobile-punchout", ...devices["Pixel 7"], mode: "punchout" },
+    { name: "mobile-lottery", ...devices["Pixel 7"], mode: "lottery" },
     { name: "mobile-3-minute-soak", ...devices["Pixel 7"], soak: true },
-  ]) {
-    const { name, cpu, classic, soak, defaultBrowserType, ...options } =
+  ].filter(profile => !onlyProfile || profile.name === onlyProfile)) {
+    const { name, cpu, classic, soak, mode, defaultBrowserType, ...options } =
       profile;
     const context = await browser.newContext(options);
     await context.addInitScript(() => {
-      const original = requestAnimationFrame;
-      window.__frames = { intervals: [], costs: [], last: 0, measuring: false };
-      window.requestAnimationFrame = (callback) =>
-        original((time) => {
-          const f = window.__frames,
-            start = performance.now();
+      const original = requestAnimationFrame, cancel = cancelAnimationFrame, pending = new Set();
+      window.__frames = { intervals: [], costs: [], last: 0, measuring: false, maxPending: 0, maxVoices: 0 };
+      window.requestAnimationFrame = callback => {
+        const id = original(time => {
+          pending.delete(id);
+          const f = window.__frames, start = performance.now();
           callback(time);
           if (f.measuring) {
             f.costs.push(performance.now() - start);
@@ -63,6 +69,13 @@ try {
             f.last = time;
           }
         });
+        pending.add(id);
+        // Count only the workload. Playwright's load waiter uses its own rAF.
+        if (window.__frames.measuring)
+          window.__frames.maxPending = Math.max(window.__frames.maxPending, pending.size);
+        return id;
+      };
+      window.cancelAnimationFrame = id => { pending.delete(id); cancel(id); };
     });
     const page = await context.newPage();
     const errors = [];
@@ -98,16 +111,32 @@ try {
       await page.evaluate(() => window.scrollTo(0, 0));
     }
     await page.waitForTimeout(1200);
+    const idleStart = await page.evaluate(() => window.__toyDebug?.().renderer.draws ?? null);
+    await page.waitForTimeout(300);
+    const baseline = await page.evaluate(() => window.__toyDebug?.() ?? null);
+    const idleDraws = baseline ? baseline.renderer.draws - idleStart : null;
+    if (!classic) {
+      await page.locator("#sound").click();
+      if (mode) {
+        await page.locator(`[data-mode="${mode}"]`).click();
+        await page.waitForFunction(() => !window.__toyDebug().loading);
+      }
+    }
     const duration = soak ? soakMs : 8000;
-    await page.evaluate((classic) => {
+    await page.evaluate(({ classic, mode }) => {
       window.__frames.measuring = true;
-      if (!classic)
-        window.__punchInterval = setInterval(() => {
-          if (document.querySelector("#result").open)
-            document.querySelector("#retry").click();
-          else document.querySelector("#punch").click();
-        }, 120);
-    }, classic);
+      if (!classic) window.__punchInterval = setInterval(() => {
+        const d = window.__toyDebug(), button = document.querySelector("#punch");
+        window.__frames.maxVoices = Math.max(window.__frames.maxVoices, d.audioVoices);
+        if (mode) {
+          const m = d.mode;
+          if (m.phase === "reward" || m.phase === "ready" || m.phase === "tell" ||
+            (m.phase === "aim" && Math.abs(m.position - .5) < .13)) button.click();
+        } else if (document.querySelector("#result").open) document.querySelector("#retry").click();
+        else button.click();
+        window.__frames.maxVoices = Math.max(window.__frames.maxVoices, window.__toyDebug().audioVoices);
+      }, 100);
+    }, { classic, mode });
     console.log(`${name}: measuring ${duration / 1000}s`);
     for (let elapsed = 0; elapsed < duration; elapsed += 30000) {
       await page.waitForTimeout(Math.min(30000, duration - elapsed));
@@ -127,6 +156,9 @@ try {
       const avg = f.intervals.reduce((a, b) => a + b, 0) / f.intervals.length;
       return {
         frames: f.intervals.length,
+        maxScheduledLoops: f.maxPending,
+        maxAudioVoices: f.maxVoices,
+        diagnostics: window.__toyDebug?.() ?? null,
         averageFps: +(1000 / avg).toFixed(2),
         frameP95Ms: +percentile(f.intervals, 0.95).toFixed(2),
         frameP99Ms: +percentile(f.intervals, 0.99).toFixed(2),
@@ -139,7 +171,22 @@ try {
         domNodes: document.querySelectorAll("*").length,
       };
     });
-    results.profiles.push({ name, durationMs: duration, ...metrics, errors });
+    const failures = [];
+    if (metrics.averageFps < results.budgets.minimumFps || !Number.isFinite(metrics.averageFps)) failures.push("FPS below 57");
+    if (metrics.frameP95Ms > results.budgets.frameP95Ms) failures.push("frame cadence over budget");
+    if (metrics.callbackP95Ms > results.budgets.callbackP95Ms) failures.push("callback cost over budget");
+    if (errors.length) failures.push("browser errors");
+    if (!classic) {
+      if (idleDraws !== 0) failures.push("idle canvas repainted");
+      if (metrics.maxScheduledLoops > 1) failures.push("multiple animation loops");
+      if (metrics.maxAudioVoices > 6) failures.push("audio voice cap exceeded");
+      if (metrics.canvasPixels > 1000000) failures.push("canvas pixel cap exceeded");
+      if (metrics.diagnostics.renderer.maxParticles > 32) failures.push("particle cap exceeded");
+      if (metrics.diagnostics.renderer.cacheBuilds !== baseline.renderer.cacheBuilds) failures.push("face cache rebuilt during play");
+      if (mode && !(metrics.diagnostics.mode.wins || metrics.diagnostics.mode.draws)) failures.push("mode never rewarded input");
+    }
+    results.profiles.push({ name, durationMs: duration, idleDraws, cacheBuildsDuringPlay: baseline ? metrics.diagnostics.renderer.cacheBuilds - baseline.renderer.cacheBuilds : null,
+      ...metrics, errors, failures, passed: failures.length === 0 });
     console.log(JSON.stringify(results.profiles.at(-1)));
     if (classic)
       await page.screenshot({
@@ -149,10 +196,12 @@ try {
     await context.close();
   }
   await mkdir("docs/artifacts", { recursive: true });
+  results.passed = results.profiles.length > 0 && results.profiles.every(p => p.passed);
   await writeFile(
     "docs/artifacts/performance.json",
     JSON.stringify(results, null, 2) + "\n",
   );
+  if (!results.passed) process.exitCode = 1;
 } finally {
   await browser?.close();
   server.kill("SIGTERM");

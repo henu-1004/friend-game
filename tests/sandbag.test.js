@@ -75,3 +75,17 @@ test("crop stays covered for portrait, landscape, extreme drags, and zoom", () =
         assert.ok(r.x + r.w >= 319.999 && r.y + r.h >= 319.999);
       }
 });
+
+test("all six overlays unlock, heavy hits stay rhythmic, and gags have tiny fixed budgets", async () => {
+  const { REACTIONS } = await import("../src/sandbag.js");
+  const s = newRound(), events = [];
+  for (let i = 1; i <= 32; i++) {
+    const hit = punch(s, i * 100);
+    assert.equal(hit.heavy, i % 4 === 0);
+    assert.equal(s.reaction, REACTIONS.findLastIndex(r => i >= r.unlock));
+    if (hit.event) events.push([i, hit.event]);
+  }
+  assert.deepEqual(events, [[8, "sneeze"], [20, "spirit"]]);
+  assert.equal(s.unlocked, 6);
+  assert.equal(newRound().unlocked, 0);
+});

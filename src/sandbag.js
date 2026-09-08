@@ -2,11 +2,18 @@ export const MAX_HP = 360;
 export const COMBO_MS = 850;
 export const MIN_PUNCH_MS = 70;
 export const REACTIONS = [
-  { name: "말랑말랑", caption: "어? 방금 뭐 지나갔어?", unlock: 0 },
-  { name: "별이 반짝", caption: "눈앞에 별이 다섯 개!", unlock: 3 },
-  { name: "빙글빙글", caption: "지구야, 잠깐만 멈춰 봐.", unlock: 6 },
-  { name: "콧수염 등장", caption: "갑자기 분위기 신사.", unlock: 10 },
+  { name: "자동", icon: "☺", caption: "어디 한 번 쳐 보시지.", unlock: 0 },
+  { name: "눈물 수도꼭지", icon: "ㅠ", caption: "안 우는데? 눈에서 땀이 나는데?", unlock: 3 },
+  { name: "왕 콧방울", icon: "◌", caption: "콧방울 보존 법칙… 에취!", unlock: 6 },
+  { name: "이 꽉!", icon: "▤", caption: "치과에서는 꽉 물라던데.", unlock: 10 },
+  { name: "X눈과 침", icon: "×", caption: "시스템 종료… 침은 정상 작동.", unlock: 14 },
+  { name: "만화 코피", icon: "!", caption: "이건 만화야. 휴지 한 장만.", unlock: 18 },
+  { name: "별 천지", icon: "✦", caption: "별점 다섯 개 드립니다…", unlock: 23 },
 ];
+// Exactly two one-shot gags per round, independent of broken combos.
+export function comedyEvent(hits) {
+  return hits === 8 ? "sneeze" : hits === 20 ? "spirit" : null;
+}
 export function newRound() {
   return {
     hp: MAX_HP,
@@ -40,7 +47,7 @@ export function punch(state, now) {
   state.reaction = REACTIONS.findLastIndex((r) => state.combo >= r.unlock);
   state.unlocked = Math.max(state.unlocked, state.reaction);
   if (state.hp === 0) state.ended = now;
-  return { damage, ko: state.hp === 0, reaction: state.reaction };
+  return { damage, ko: state.hp === 0, reaction: state.reaction, heavy: state.combo % 4 === 0, event: comedyEvent(state.hits) };
 }
 export function roundSeconds(state) {
   return state.started === null || state.ended === null

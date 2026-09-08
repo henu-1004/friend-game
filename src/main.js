@@ -10,44 +10,38 @@ import {
   cropPosition,
 } from "./sandbag.js";
 import { SandbagRenderer } from "./sandbag-renderer.js";
+import { PunchAudio } from "./punch-audio.js";
+const audio = new PunchAudio();
 
 const $ = (selector) => document.querySelector(selector);
 $("#app").innerHTML = `
 <header class="topbar">
-  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">✳</span> friend<span>smash</span></a>
-  <nav aria-label="게임 모드"><a class="nav-link active" href="./" aria-current="page">샌드백</a><a class="nav-link" href="./classic.html">Classic ↗</a></nav>
-  <span class="edition">작은 장난, 큰 웃음.</span>
+  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">✳</span> 친구 때리기 <small>우정은 무사함</small></a>
+  <div class="settings"><button id="sound" class="icon-button" aria-pressed="false">소리 꺼짐</button><button id="motion" class="icon-button" aria-pressed="false">움직임 줄이기</button><a class="classic-link" href="./classic.html">Classic ↗</a></div>
 </header>
 <main>
-  <section class="intro"><div><div class="eyebrow"><span class="dot"></span> 우정 테스트 말고, 펀치 테스트</div><h1>툭 치면, <span>빵 터진다.</span></h1><p>친구 얼굴을 붙이고 톡톡. 오늘의 스트레스를 말랑하게 날려요.</p></div><div class="intro-note">준비는 5초면 충분해요.<br>사진 없이도 바로 한 판!</div></section>
-  <div class="game-layout">
-    <section aria-label="샌드백 놀이터">
-      <div class="playroom">
-        <div class="arena-top"><div class="round-label"><b>●</b> 샌드백 <span id="round-number">01</span></div><div class="settings"><button id="sound" class="icon-button" aria-pressed="false">소리 꺼짐</button><button id="motion" class="icon-button" aria-pressed="false">움직임 줄이기</button></div></div>
-        <div class="health-row"><strong id="bag-status">말랑이, 준비 완료!</strong><span id="hp-label">체력 ${MAX_HP} / ${MAX_HP}</span></div>
-        <div id="hp" class="health" role="progressbar" aria-label="샌드백 체력" aria-valuemin="0" aria-valuemax="${MAX_HP}" aria-valuenow="${MAX_HP}"><i></i></div>
-        <div class="arena">
-          <button id="target" class="target" aria-label="샌드백 펀치. 클릭하거나 스페이스 또는 엔터를 누르세요."><canvas id="bag" aria-hidden="true"></canvas></button>
-          <div class="side-stamp">얼굴은 말랑 · 우정은 단단</div>
-          <div class="combo-box" aria-label="현재 콤보"><small>연속 펀치</small><strong id="combo">0<span> 콤보</span></strong><div class="combo-clock"><i id="combo-fill"></i></div></div>
-          <div class="arena-help" id="arena-help">얼굴을 톡! 또는 <kbd>SPACE</kbd> 로 펀치</div>
-        </div>
-        <div class="punchbar"><button id="punch" class="punch-button">한 방 날리기 <span>↗</span></button><p>빠르게 이으면 콤보!<br>콤보가 쌓일수록 더 우스워져요.</p></div>
-      </div>
-      <div class="below-arena"><span><span class="dot"></span> <b id="play-hint">연속 3번이면 첫 표정 등장</b></span><span id="fps">부드러움 측정 중</span></div>
-    </section>
-    <aside aria-label="얼굴과 플레이 기록">
-      <section class="panel face-panel"><div class="panel-heading"><h2>오늘의 주인공</h2><span class="step-number">01 / 얼굴</span></div><div class="face-content"><div class="face-row"><div id="avatar" class="avatar" aria-hidden="true">☺</div><div><strong id="face-name">연습 친구, 말랑이</strong><p>준비됐어? 난 말랑해.</p></div></div><div><button id="upload" class="upload-button">＋ 친구 얼굴 붙이기</button><input id="photo" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" tabindex="-1" aria-label="친구 얼굴 사진 선택"><div class="photo-options" id="photo-options" hidden><button id="recrop" class="text-button">위치 조절</button><button id="remove-photo" class="text-button">기본 얼굴로</button></div></div><p id="photo-status" class="local-note" role="status">사진은 이 기기 안에서만 사용해요.<br>함께 웃을 수 있는 사진으로 골라 주세요.</p></div></section>
-      <section class="panel"><div class="panel-heading"><h2>표정 수집</h2><span class="step-number">02 / 리액션</span></div><div class="reactions">${["☺", "✦", "◎", "〰"].map((icon, i) => `<button class="reaction" data-reaction="${i}" data-unlocked="${i === 0}" aria-label="${REACTIONS[i].name}, ${i ? REACTIONS[i].unlock + "콤보 달성 후 선택" : "자동 표정"}" aria-pressed="${i === 0}" ${i ? "disabled" : ""}>${icon}<small>${i ? REACTIONS[i].unlock + " 콤보" : "자동"}</small></button>`).join("")}</div><p id="reaction-caption" class="reaction-caption">어? 방금 뭐 지나갔어?</p><p class="reaction-hint">콤보로 열고, 눌러서 붙여요.<br>사진 위에 우스운 표정이 착!</p></section>
-      <section class="panel session"><div class="panel-heading"><h2>나의 작은 기록</h2><span class="step-number">03 / 한 판 더</span></div><div class="session-stats"><div><strong id="best">0</strong><small>최고 연속 콤보</small></div><div><strong id="kos">0</strong><small>오늘의 KO · 이번 접속</small></div></div><p>잘 때리는 것보다, 웃기는 게 우선.<br>KO 뒤에도 얼굴은 그대로, 바로 한 판 더!</p></section>
-    </aside>
+  <nav class="mode-hub" aria-label="게임 모드">${[["sandbag", "01", "샌드백"], ["finisher", "02", "필살기"], ["punchout", "03", "펀치아웃"], ["lottery", "04", "무기 뽑기"]].map(([id, n, name]) => `<button data-mode="${id}" aria-pressed="${id === "sandbag"}"><small>${n}</small>${name}</button>`).join("")}</nav>
+  <section class="playroom" aria-label="친구 펀치 놀이터">
+    <div class="arena-top"><div class="round-label"><b>●</b> <span id="mode-name">샌드백</span> <span id="round-number" data-sandbag>01</span></div><span id="hp-label" data-sandbag>체력 ${MAX_HP} / ${MAX_HP}</span><span id="mode-score" hidden>성공 0</span></div>
+    <div id="hp" class="health" data-sandbag role="progressbar" aria-label="샌드백 체력" aria-valuemin="0" aria-valuemax="${MAX_HP}" aria-valuenow="${MAX_HP}"><i></i></div>
+    <div class="arena">
+      <div class="gym-lettering" aria-hidden="true">친구야<br>미안ㅋㅋ</div>
+      <button id="target" class="target" aria-label="샌드백 펀치. 클릭하거나 스페이스 또는 엔터를 누르세요."><canvas id="bag" aria-hidden="true"></canvas></button>
+      <div class="combo-box" data-sandbag aria-label="현재 콤보"><small>연속으로 갈겨!</small><strong id="combo">0<span> 콤보</span></strong><div class="combo-clock"><i id="combo-fill"></i></div></div>
+      <div id="mode-overlay" hidden><strong id="mode-callout"></strong><div id="mode-meter" class="mode-meter" hidden><span class="sweet-spot"></span><i></i></div><span id="mode-prop" aria-hidden="true"></span></div>
+      <div class="arena-help" id="arena-help">얼굴을 톡! <kbd>SPACE</kbd> 도 가능</div>
+    </div>
+    <div class="punchbar"><div class="punch-copy"><strong id="bag-status">어디 한 번 쳐 보시지.</strong><span id="play-hint">4번째는 묵직하게 · 3콤보부터 눈물샘 개방</span></div><button id="punch" class="punch-button">한 방 날리기 <span>↗</span></button></div>
+  </section>
+  <div class="toy-shelf">
+    <section class="sticker-tray" data-sandbag aria-label="표정 수집"><div class="reactions">${REACTIONS.map((r, i) => `<button class="reaction" data-reaction="${i}" data-unlocked="${i === 0}" aria-label="${r.name}, ${i ? r.unlock + "콤보 달성 후 선택" : "자동 표정"}" aria-pressed="${i === 0}" ${i ? "disabled" : ""}>${r.icon}<small>${i ? r.unlock + "콤보" : "자동"}</small></button>`).join("")}</div><p id="reaction-caption">어디 한 번 쳐 보시지.</p></section>
+    <section class="face-tools" aria-label="친구 얼굴"><div class="face-row"><div id="avatar" class="avatar" aria-hidden="true">☺</div><span id="face-name" class="sr-only">연습 친구, 말랑이</span><button id="upload" class="upload-button">＋ 친구 얼굴 붙이기</button><input id="photo" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" tabindex="-1" aria-label="친구 얼굴 사진 선택"></div><div class="photo-options" id="photo-options" hidden><button id="recrop" class="text-button">위치 조절</button><button id="remove-photo" class="text-button">기본 얼굴로</button></div><p id="photo-status" class="local-note" role="status">사진은 이 기기에만. 함께 웃을 친구로!</p></section>
   </div>
-  <div class="steps"><p><b>01</b> 얼굴을 붙여요 <span>· 선택</span></p><p><b>02</b> 톡톡 치고 콤보를 이어요</p><p><b>03</b> 웃긴 얼굴로 KO, 한 판 더!</p></div>
-  <footer><strong>FRIENDSMASH / 샌드백 클럽</strong><span>장난은 가볍게. 친구는 소중하게.</span></footer>
+  <footer><span>최고 <b id="best">0</b> 콤보 · 오늘 <b id="kos">0</b> KO</span><span id="fps">부드러움 측정 중</span></footer>
 </main>
 <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
 <dialog id="crop-dialog" aria-labelledby="crop-title"><div class="dialog-top"><span class="eyebrow">얼굴 준비 중</span><button id="cancel-crop" class="close-button" aria-label="얼굴 편집 취소">×</button></div><h2 id="crop-title">동그라미 안에 쏙.</h2><p>얼굴이 가운데 오도록 사진을 드래그해요.<br>아래 슬라이더로도 위치를 조절할 수 있어요.</p><canvas id="crop" class="crop-canvas" width="320" height="320" aria-label="얼굴 자르기 미리보기"></canvas><div class="crop-controls"><label>확대<input id="zoom" type="range" min="1" max="4" step="0.01" value="1"></label><label>가로 위치<input id="crop-x" type="range" min="-480" max="480" value="0"></label><label>세로 위치<input id="crop-y" type="range" min="-480" max="480" value="0"></label></div><button id="save-crop" class="primary" style="width:100%">이 얼굴로 놀기 ↗</button></dialog>
-<dialog id="result" class="result-dialog" aria-labelledby="result-title"><div class="eyebrow">오늘도 사이좋게 한 판 끝!</div><div class="ko-symbol" aria-hidden="true">K.O.!</div><h2 id="result-title">우정은 끄떡없지?</h2><p>말랑한 샌드백은 벌써 다음 판 준비 중.</p><div class="result-stats"><div><strong id="result-hits">0</strong><span>펀치</span></div><div><strong id="result-combo">0</strong><span>최고 콤보</span></div><div><strong id="result-time">0</strong><span>플레이 초</span></div></div><button id="retry" class="primary">한 판 더! ↻</button><button id="save-card" class="secondary">웃긴 순간 사진 저장 ↓</button><p id="save-status" role="status">사진은 저장 버튼을 누를 때만 만들어져요.</p></dialog>
+<dialog id="result" class="result-dialog" aria-labelledby="result-title"><div class="eyebrow">웃다가 한 판 끝!</div><div class="ko-symbol" aria-hidden="true">K.O.!</div><h2 id="result-title">얼굴이 퇴근했어요.</h2><p>영혼 복귀까지 0초. 한 판 더?</p><div class="result-stats"><div><strong id="result-hits">0</strong><span>펀치</span></div><div><strong id="result-combo">0</strong><span>최고 콤보</span></div><div><strong id="result-time">0</strong><span>플레이 초</span></div></div><button id="retry" class="primary">한 판 더! ↻</button><button id="save-card" class="secondary">웃긴 순간 사진 저장 ↓</button><p id="save-status" role="status">사진은 저장 버튼을 누를 때만 만들어져요.</p></dialog>
 `;
 
 const renderer = new SandbagRenderer($("#bag"));
@@ -57,12 +51,18 @@ let state = newRound(),
   best = 0,
   forcedReaction = null;
 let sound = false,
-  audioContext,
   resultTimer,
   raf = 0,
   previous = 0,
   frames = [],
   fpsTime = 0;
+let activeMode = "sandbag", mini = null, switchVersion = 0, loading = false;
+const loopCounts = { sandbag: 0, finisher: 0, punchout: 0, lottery: 0 };
+const modeLoaders = {
+  finisher: () => import("./modes/finisher.js"),
+  punchout: () => import("./modes/punchout.js"),
+  lottery: () => import("./modes/lottery.js"),
+};
 const reducedQuery = matchMedia("(prefers-reduced-motion: reduce)");
 renderer.reduced = reducedQuery.matches;
 $("#motion").setAttribute("aria-pressed", String(renderer.reduced));
@@ -109,58 +109,33 @@ function updateUI() {
       ? "KO! 잠깐 웃고 가실게요."
       : state.hits
         ? state.combo >= 10
-          ? "콤보 폭발! 우정은 안전해요."
-          : "좋아, 한 번 더 톡!"
-        : "말랑이, 준비 완료!";
-  ui.hint.textContent =
-    state.hp === 0
-      ? "이번 판 완료 · 바로 다시 도전!"
-      : state.combo >= 10
-        ? "표정 모두 발견! 콤보를 이어 보세요"
-        : state.combo >= 6
-          ? "10콤보면 콧수염이 짠!"
-          : state.combo >= 3
-            ? "6콤보면 눈이 빙글빙글"
-            : "연속 3번이면 첫 표정 등장";
+          ? "얼굴이 점점 퇴근 중ㅋㅋ"
+          : "좋아. 반대쪽도 한 대!"
+        : "어디 한 번 쳐 보시지.";
+  const next = REACTIONS[state.unlocked + 1];
+  ui.hint.textContent = state.hp === 0 ? "이번 판 완료 · 바로 다시 도전!"
+    : state.unlocked === REACTIONS.length - 1 ? "표정 전부 발견! 친구 얼굴이 바빠졌다"
+      : `${next?.unlock ?? 23}콤보에 ${next?.name ?? "별 천지"} · 4번째는 묵직하게`;
   ui.target.disabled = ui.punch.disabled = state.hp === 0;
   $("#upload").disabled = $("#recrop").disabled = state.hp === 0;
 }
-function playSound(ko) {
-  if (!sound) return;
-  try {
-    audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
-    if (audioContext.state === "suspended")
-      audioContext.resume().catch(() => {});
-    const osc = audioContext.createOscillator(),
-      gain = audioContext.createGain(),
-      t = audioContext.currentTime;
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(ko ? 440 : 155 + state.combo * 3, t);
-    osc.frequency.exponentialRampToValueAtTime(ko ? 90 : 45, t + 0.13);
-    gain.gain.setValueAtTime(0.18, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
-    osc.start(t);
-    osc.stop(t + 0.2);
-    osc.onended = () => {
-      osc.disconnect();
-      gain.disconnect();
-    };
-  } catch {
-    sound = false;
-    $("#sound").textContent = "소리 사용 불가";
-    $("#sound").setAttribute("aria-pressed", "false");
-  }
+function playSound(ko = false, heavy = false, event = null, prop = null) {
+  if (sound) audio.hit({ ko, heavy, event, prop });
 }
+
 function performPunch(direction = state.hits % 2 ? 1 : -1) {
-  if ($("#crop-dialog").open || $("#result").open || document.hidden) return;
+  if ($("#crop-dialog").open || $("#result").open || document.hidden || loading) return;
+  if (activeMode !== "sandbag") { mini?.action(); return; }
   const oldUnlock = state.unlocked,
     hit = punch(state, performance.now());
   if (!hit) return;
-  renderer.hit(direction, hit.ko);
-  playSound(hit.ko);
   updateUI();
+  renderer.hit(direction, hit.ko, hit.heavy, hit.event);
+  playSound(hit.ko, hit.heavy, hit.event);
+  if (hit.event) {
+    ui.status.textContent = hit.event === "sneeze" ? "에취!! 콧방울이 탈출했다" : "잠깐, 영혼만 퇴근할게";
+    announce(ui.status.textContent);
+  }
   if (state.bestCombo > best) {
     best = state.bestCombo;
     $("#best").textContent = best;
@@ -182,9 +157,10 @@ function performPunch(direction = state.hits % 2 ? 1 : -1) {
       `KO! ${state.hits}번 펀치, 최고 ${state.bestCombo} 콤보. 한 판 더 도전해요.`,
     );
     resultTimer = setTimeout(() => {
+      if (activeMode !== "sandbag") return;
       $("#result").showModal();
       $("#retry").focus();
-    }, 650);
+    }, 900);
   }
 }
 ui.target.addEventListener("pointerdown", (event) => {
@@ -249,56 +225,122 @@ $("#sound").onclick = () => {
   sound = !sound;
   $("#sound").textContent = sound ? "소리 켜짐" : "소리 꺼짐";
   $("#sound").setAttribute("aria-pressed", sound);
-  if (sound) playSound(false);
+  if (sound) { audio.unlock(); playSound(false); }
+  else audio.stop();
 };
 $("#motion").onclick = () => {
   renderer.reduced = !renderer.reduced;
+  mini?.setReduced(renderer.reduced);
   $("#motion").setAttribute("aria-pressed", renderer.reduced);
 };
 reducedQuery.addEventListener("change", (event) => {
   renderer.reduced = event.matches;
+  mini?.setReduced(renderer.reduced);
   $("#motion").setAttribute("aria-pressed", renderer.reduced);
 });
-new ResizeObserver(() => {
-  renderer.resize();
-  renderer.draw();
-}).observe(renderer.canvas);
+new ResizeObserver(() => { renderer.resize(); renderer.draw(); }).observe(renderer.canvas);
 function frame(now) {
+  raf = 0;
+  if (document.hidden || loading) return;
   const elapsed = previous ? now - previous : 16.67;
   previous = now;
-  if (state.hp > 0 && expireCombo(state, now)) {
-    ui.combo.firstChild.textContent = 0;
-    ui.hint.textContent = "잠깐 쉬었네요. 다시 톡톡, 콤보 시작!";
+  const dt = Math.min(elapsed / 1000, .033);
+  loopCounts[activeMode]++;
+  if (!$("#crop-dialog").open && !$("#result").open) {
+    if (activeMode === "sandbag") {
+      if (state.hp > 0 && expireCombo(state, now)) {
+        ui.comboFill.style.transform = "scaleX(0)";
+        ui.combo.firstChild.textContent = 0;
+        ui.hint.textContent = "숨 한 번 쉬고… 다시 갈겨!";
+      }
+      if (state.combo && state.hp > 0)
+        ui.comboFill.style.transform = `scaleX(${Math.max(0, 1 - (now - state.lastHit) / COMBO_MS)})`;
+    } else mini?.frame(dt);
+    renderer.frame(dt);
   }
-  renderer.frame(Math.min(elapsed / 1000, 0.033));
-  if (state.combo && state.hp > 0)
-    ui.comboFill.style.transform = `scaleX(${Math.max(0, 1 - (now - state.lastHit) / COMBO_MS)})`;
-  else ui.comboFill.style.transform = "scaleX(0)";
   frames.push(elapsed);
   if (frames.length > 180) frames.shift();
   if (now - fpsTime > 1000) {
     fpsTime = now;
-    const fps = Math.round(
-      1000 / (frames.reduce((a, b) => a + b, 0) / frames.length),
-    );
-    $("#fps").textContent = `${fps} FPS · 가볍게 톡톡`;
+    const observedFps = 1000 / (frames.reduce((a, b) => a + b, 0) / frames.length);
+    // Keep scheduling at display cadence; shed pixels and cosmetics on a slow device.
+    if (frames.length >= 45 && observedFps < 57) renderer.reduceEffects();
+    $("#fps").textContent = `${Math.round(observedFps)} FPS`;
   }
   raf = requestAnimationFrame(frame);
 }
-document.addEventListener("visibilitychange", () => {
-  cancelAnimationFrame(raf);
-  previous = 0;
-  frames = [];
-  // Background time never keeps a combo alive; the round remains available on return.
-  if (document.hidden) {
-    if (state.hp > 0) {
-      state.combo = 0;
-      ui.combo.firstChild.textContent = 0;
+function startLoop() {
+  cancelAnimationFrame(raf); raf = 0; previous = 0;
+  if (!document.hidden && !loading) raf = requestAnimationFrame(frame);
+}
+const modeHost = {
+  show({ status, hint, button, callout = "", score = "", meter = false, prop = "" }) {
+    ui.status.textContent = status; ui.hint.textContent = hint;
+    ui.punch.textContent = button; $("#mode-callout").textContent = callout;
+    $("#mode-score").textContent = score;
+    $("#mode-meter").hidden = !meter; $("#mode-prop").textContent = prop;
+    announce(status);
+  },
+  meter(value) { $("#mode-meter i").style.transform = `translateX(${value * 244}px)`; },
+  impact({ heavy = false, ko = false, reaction = 3, event = null, prop = null } = {}) {
+    renderer.reaction = reaction;
+    renderer.hit(Math.random() < .5 ? -1 : 1, ko, heavy, event, prop);
+    playSound(ko, heavy, event, prop);
+  },
+  reset() { renderer.reset(); },
+  pose(value) { $("#mode-overlay").dataset.pose = value; },
+};
+async function selectMode(id) {
+  if (id === activeMode && !loading) return;
+  const version = ++switchVersion;
+  loading = true; cancelAnimationFrame(raf); raf = 0;
+  clearTimeout(resultTimer); audio.stop(); mini?.dispose(); mini = null;
+  $("#result").close(); renderer.reset();
+  activeMode = id;
+  $("#mode-meter").hidden = true; $("#mode-callout").textContent = ""; $("#mode-prop").textContent = "";
+  $("#mode-overlay").dataset.pose = "";
+  document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === id));
+  document.querySelectorAll("[data-sandbag]").forEach(el => { el.hidden = id !== "sandbag"; });
+  $("#mode-overlay").hidden = $("#mode-score").hidden = id === "sandbag";
+  ui.target.disabled = ui.punch.disabled = true;
+  ui.status.textContent = "장난감 꺼내는 중…";
+  try {
+    const module = id === "sandbag" ? null : await modeLoaders[id]();
+    if (version !== switchVersion) return;
+    loading = false;
+    ui.target.disabled = ui.punch.disabled = false;
+    $("#upload").disabled = $("#recrop").disabled = false;
+    $("#mode-name").textContent = { sandbag: "샌드백", finisher: "필살기", punchout: "펀치아웃", lottery: "무기 뽑기" }[id];
+    ui.target.setAttribute("aria-label", id === "sandbag" ? "샌드백 펀치. 클릭하거나 스페이스 또는 엔터를 누르세요." : "모드 액션. 클릭하거나 스페이스 또는 엔터를 누르세요.");
+    $("#arena-help").textContent = id === "sandbag" ? "얼굴을 톡! SPACE 도 가능" : "얼굴 또는 아래 버튼 · SPACE 도 가능";
+    if (module) { mini = module.createMode(modeHost); mini.setReduced(renderer.reduced); }
+    else {
+      ui.punch.innerHTML = "한 방 날리기 <span>↗</span>";
+      updateUI(); renderer.ko = state.hp === 0;
+      if (!state.hp) $("#result").showModal();
     }
-  } else raf = requestAnimationFrame(frame);
+    renderer.draw(); startLoop();
+  } catch (error) {
+    if (version !== switchVersion) return;
+    activeMode = "failed"; loading = false;
+    await selectMode("sandbag");
+    ui.hint.textContent = "장난감을 못 불러왔어요. 다시 눌러 주세요.";
+  }
+}
+for (const button of document.querySelectorAll("[data-mode]")) button.onclick = () => selectMode(button.dataset.mode);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    cancelAnimationFrame(raf); raf = 0; audio.stop(); frames = [];
+    state.combo = 0; ui.combo.firstChild.textContent = 0; ui.comboFill.style.transform = "scaleX(0)";
+    mini?.suspend();
+  } else startLoop();
 });
-updateUI();
-raf = requestAnimationFrame(frame);
+// Read-only diagnostics for reproducible lifecycle/cache/performance assertions.
+window.__toyDebug = () => ({ activeMode, loading, scheduledLoops: raf ? 1 : 0,
+  loopCounts: { ...loopCounts }, particles: renderer.particles.length,
+  renderer: { ...renderer.stats, quality: renderer.lite ? "lite" : "full", dpr: renderer.dpr }, freezeMs: renderer.freeze * 1000,
+  audioVoices: audio.voices.size, mode: mini?.snapshot() ?? null });
+updateUI(); startLoop();
 
 // Photos stay in memory. The source is bounded once; every game frame uses a 320px crop.
 let source = null,
@@ -379,7 +421,7 @@ $("#photo").onchange = async (event) => {
     const img = new Image();
     img.src = url;
     await img.decode();
-    if (version !== photoVersion || state.hp === 0) {
+    if (version !== photoVersion || (activeMode === "sandbag" && state.hp === 0)) {
       $("#photo-status").textContent = "한 판 더 시작한 뒤 사진을 골라 주세요.";
       return;
     }
@@ -400,7 +442,7 @@ $("#photo").onchange = async (event) => {
       "사진을 열 수 없어요. 4천만 화소 이하의 다른 사진으로 다시 시도해 주세요.";
   } finally {
     URL.revokeObjectURL(url);
-    $("#upload").disabled = state.hp === 0;
+    $("#upload").disabled = activeMode === "sandbag" && state.hp === 0;
   }
 };
 $("#zoom").oninput = (event) => {

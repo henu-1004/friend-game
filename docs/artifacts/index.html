@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>친구 때리기 · 플레이 증거</title>
+<style>
+  * { box-sizing: border-box; }
+  body { max-width: 1100px; margin: auto; padding: 24px; color: #25281e; background: #f0ecdd; font: 15px/1.6 system-ui, sans-serif; }
+  h1 { font-size: 28px; margin-bottom: 6px; } a { color: #994225; }
+  video { width: 100%; max-height: 75vh; background: #25281e; border: 2px solid #25281e; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  figure { margin: 0; padding: 10px; border: 1px solid #aaa; background: #e6e8d7; }
+  img { width: 100%; max-height: 600px; object-fit: contain; display: block; }
+  figcaption { padding-top: 8px; font-weight: 700; }
+</style>
+<h1>친구 때리기 · 실제 플레이</h1>
+<p>샌드백 32번 → KO → 필살기 → 펀치아웃 → 무기 뽑기 → 다시 샌드백. 실제 브라우저 입력으로 녹화했습니다.</p>
+<video controls preload="metadata" poster="desktop-dense-impact.png" src="party-play.webm"></video>
+<p>영상은 무음입니다. 앱에서는 소리를 켜고 진행했습니다. 아래 사진 테스트는 실제 인물 대신 로컬 테스트 그림을 사용했습니다.</p>
+<p><a href="../DENSIFY_REPORT.md">결과 보고서</a> · <a href="performance.json">FPS 측정</a> · <a href="play-proof.json">플레이 시각과 진단</a> · <a href="browser-tests.txt">브라우저 테스트</a></p>
+<div class="grid">
+  <figure><a href="desktop-dense-impact.png"><img src="desktop-dense-impact.png" alt="네 번째 강한 펀치의 눌린 샌드백과 글러브"></a><figcaption>4번째는 묵직하게</figcaption></figure>
+  <figure><a href="mobile-sneeze.png"><img loading="lazy" src="mobile-sneeze.png" alt="콧방울 표정과 날아가는 휴지"></a><figcaption>8번째 · 에취!</figcaption></figure>
+  <figure><a href="mobile-spirit.png"><img loading="lazy" src="mobile-spirit.png" alt="샌드백에서 빠져나오는 작은 영혼"></a><figcaption>20번째 · 영혼 외출</figcaption></figure>
+  <figure><a href="desktop-finisher.png"><img loading="lazy" src="desktop-finisher.png" alt="필살기 999점 성공"></a><figcaption>필살기 · 타이밍 한 방</figcaption></figure>
+  <figure><a href="desktop-punchout.png"><img loading="lazy" src="desktop-punchout.png" alt="펀치아웃 회피와 반격 성공"></a><figcaption>펀치아웃 · 쓱 피하고 뽁</figcaption></figure>
+  <figure><a href="desktop-lottery.png"><img loading="lazy" src="desktop-lottery.png" alt="무기 뽑기 당첨 보상"></a><figcaption>무기 뽑기 · 알아서 한 대</figcaption></figure>
+</div>
+</html>

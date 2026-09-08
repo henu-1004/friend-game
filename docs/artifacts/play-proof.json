@@ -1,0 +1,274 @@
+{
+  "recordedAt": "2026-09-08T04:11:31.817Z",
+  "viewport": {
+    "width": 1024,
+    "height": 900
+  },
+  "note": "Actual browser inputs and captures. Playwright WebM is silent; sound is enabled during play. No participant photos.",
+  "steps": [
+    {
+      "label": "Ready; default Sandbag with sound enabled",
+      "seconds": 0.91,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 51,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 0,
+        "renderer": {
+          "draws": 2,
+          "cacheBuilds": 1,
+          "maxParticles": 0,
+          "hitstops": 0,
+          "clearedPixels": 685243.6363636362,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": null
+      }
+    },
+    {
+      "label": "Fourth-hit heavy squash and glove",
+      "seconds": 1.63,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 94,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 30,
+        "renderer": {
+          "draws": 34,
+          "cacheBuilds": 1,
+          "maxParticles": 30,
+          "hitstops": 4,
+          "clearedPixels": 11649141.818181822,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 0,
+        "audioVoices": 2,
+        "mode": null
+      }
+    },
+    {
+      "label": "One tissue sneeze",
+      "seconds": 2.44,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 143,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 29,
+        "renderer": {
+          "draws": 77,
+          "cacheBuilds": 1,
+          "maxParticles": 30,
+          "hitstops": 8,
+          "clearedPixels": 26381879.99999996,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 41.40000000000009,
+        "audioVoices": 3,
+        "mode": null
+      }
+    },
+    {
+      "label": "One escaping spirit",
+      "seconds": 4.86,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 287,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 32,
+        "renderer": {
+          "draws": 195,
+          "cacheBuilds": 1,
+          "maxParticles": 32,
+          "hitstops": 20,
+          "clearedPixels": 66811254.545454666,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 58,
+        "audioVoices": 3,
+        "mode": null
+      }
+    },
+    {
+      "label": "32-hit KO with stacked cartoon overlays",
+      "seconds": 8.23,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 490,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 0,
+        "renderer": {
+          "draws": 362,
+          "cacheBuilds": 1,
+          "maxParticles": 32,
+          "hitstops": 32,
+          "clearedPixels": 124029098.1818174,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": null
+      }
+    },
+    {
+      "label": "finisher: playable reward",
+      "seconds": 9.49,
+      "diagnostics": {
+        "activeMode": "finisher",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 542,
+          "finisher": 23,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 13,
+        "renderer": {
+          "draws": 365,
+          "cacheBuilds": 1,
+          "maxParticles": 32,
+          "hitstops": 33,
+          "clearedPixels": 125056963.63636284,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 82,
+        "audioVoices": 3,
+        "mode": {
+          "phase": "reward",
+          "position": 0.41445591722169567,
+          "wins": 1
+        }
+      }
+    },
+    {
+      "label": "punchout: playable reward",
+      "seconds": 11.75,
+      "diagnostics": {
+        "activeMode": "punchout",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 542,
+          "finisher": 85,
+          "punchout": 72,
+          "lottery": 0
+        },
+        "particles": 13,
+        "renderer": {
+          "draws": 424,
+          "cacheBuilds": 1,
+          "maxParticles": 32,
+          "hitstops": 34,
+          "clearedPixels": 145271650.9090898,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 58,
+        "audioVoices": 3,
+        "mode": {
+          "phase": "reward",
+          "wins": 1
+        }
+      }
+    },
+    {
+      "label": "lottery: playable reward",
+      "seconds": 13.64,
+      "diagnostics": {
+        "activeMode": "lottery",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 542,
+          "finisher": 85,
+          "punchout": 135,
+          "lottery": 50
+        },
+        "particles": 13,
+        "renderer": {
+          "draws": 486,
+          "cacheBuilds": 1,
+          "maxParticles": 32,
+          "hitstops": 35,
+          "clearedPixels": 166514203.6363622,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 41.29999999999927,
+        "audioVoices": 2,
+        "mode": {
+          "phase": "reward",
+          "draws": 1,
+          "weapon": "leek"
+        }
+      }
+    },
+    {
+      "label": "Return to Sandbag; one scheduled loop",
+      "seconds": 14.72,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 544,
+          "finisher": 85,
+          "punchout": 135,
+          "lottery": 112
+        },
+        "particles": 7,
+        "renderer": {
+          "draws": 542,
+          "cacheBuilds": 1,
+          "maxParticles": 32,
+          "hitstops": 36,
+          "clearedPixels": 185701025.4545437,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 38,
+        "audioVoices": 2,
+        "mode": null
+      }
+    }
+  ],
+  "errors": []
+}

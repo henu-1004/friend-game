@@ -6,59 +6,79 @@ TAP version 13
 # Subtest: twelve distinct visible kits span the toybox
 ok 1 - twelve distinct visible kits span the toybox
   ---
-  duration_ms: 1.260744
+  duration_ms: 1.205827
   ...
 # Subtest: reroll always changes kit including random boundaries
 ok 2 - reroll always changes kit including random boundaries
   ---
-  duration_ms: 0.378877
+  duration_ms: 0.382186
   ...
 # Subtest: all five stages have valid boss and NPC kits and unique hazards
 ok 3 - all five stages have valid boss and NPC kits and unique hazards
   ---
-  duration_ms: 1.378543
+  duration_ms: 1.01934
   ...
 # Subtest: offer three distinct upgrades even when every toy is owned
 ok 4 - offer three distinct upgrades even when every toy is owned
   ---
-  duration_ms: 0.445131
+  duration_ms: 0.308043
   ...
 # Subtest: only a living friendly team and defeated enemies win; timeout loses
 ok 5 - only a living friendly team and defeated enemies win; timeout loses
   ---
-  duration_ms: 0.391997
+  duration_ms: 0.275401
+  ...
+# Subtest: finisher scores timing and can retry; one input produces one reward
+ok 6 - finisher scores timing and can retry; one input produces one reward
+  ---
+  duration_ms: 1.402261
+  ...
+# Subtest: punchout rewards a tell-window dodge, handles early/late input, and resets on hide
+ok 7 - punchout rewards a tell-window dodge, handles early/late input, and resets on hide
+  ---
+  duration_ms: 0.352295
+  ...
+# Subtest: lottery bounds random picks and ignores repeated inputs while drawing
+ok 8 - lottery bounds random picks and ignores repeated inputs while drawing
+  ---
+  duration_ms: 0.401802
   ...
 # Subtest: one physical punch changes HP once; input flooding is bounded
-ok 6 - one physical punch changes HP once; input flooding is bounded
+ok 9 - one physical punch changes HP once; input flooding is bounded
   ---
-  duration_ms: 1.461578
+  duration_ms: 1.492318
   ...
 # Subtest: combo survives the exact deadline, expires beyond it, and restarts at one
-ok 7 - combo survives the exact deadline, expires beyond it, and restarts at one
+ok 10 - combo survives the exact deadline, expires beyond it, and restarts at one
   ---
-  duration_ms: 0.174507
+  duration_ms: 0.194874
   ...
 # Subtest: three reaction milestones unlock and remain available after a combo break
-ok 8 - three reaction milestones unlock and remain available after a combo break
+ok 11 - three reaction milestones unlock and remain available after a combo break
   ---
-  duration_ms: 0.225005
+  duration_ms: 0.261147
   ...
 # Subtest: KO clamps HP, stops extra punches, and retry starts without prior run state
-ok 9 - KO clamps HP, stops extra punches, and retry starts without prior run state
+ok 12 - KO clamps HP, stops extra punches, and retry starts without prior run state
   ---
-  duration_ms: 1.113717
+  duration_ms: 1.256816
   ...
 # Subtest: crop stays covered for portrait, landscape, extreme drags, and zoom
-ok 10 - crop stays covered for portrait, landscape, extreme drags, and zoom
+ok 13 - crop stays covered for portrait, landscape, extreme drags, and zoom
   ---
-  duration_ms: 0.538092
+  duration_ms: 0.52204
   ...
-1..10
-# tests 10
+# Subtest: all six overlays unlock, heavy hits stay rhythmic, and gags have tiny fixed budgets
+ok 14 - all six overlays unlock, heavy hits stay rhythmic, and gags have tiny fixed budgets
+  ---
+  duration_ms: 0.527206
+  ...
+1..14
+# tests 14
 # suites 0
-# pass 10
+# pass 14
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 148.964594
+# duration_ms 166.482172

@@ -3,21 +3,29 @@
 > playwright test
 
 
-Running 14 tests using 1 worker
+Running 22 tests using 1 worker
 
   ✓   1 [desktop] › tests/browser/sandbag.spec.js:35:1 › immediate play, scoped hit target, combo expiry and sticker selection (4.3s)
-  ✓   2 [desktop] › tests/browser/sandbag.spec.js:74:1 › local photo crop, cancel, re-edit and remove; no upload requests (555ms)
-  ✓   3 [desktop] › tests/browser/sandbag.spec.js:111:1 › invalid and oversized photos recover without breaking play (2.0s)
+  ✓   2 [desktop] › tests/browser/sandbag.spec.js:74:1 › local photo crop, cancel, re-edit and remove; no upload requests (526ms)
+  ✓   3 [desktop] › tests/browser/sandbag.spec.js:111:1 › invalid and oversized photos recover without breaking play (1.9s)
   ✓   4 [desktop] › tests/browser/sandbag.spec.js:132:1 › KO result, image export and immediate retry retain the chosen face (6.4s)
-  ✓   5 [desktop] › tests/browser/sandbag.spec.js:167:1 › keyboard, reduced motion and blocked storage remain playable (5.6s)
-  ✓   6 [desktop] › tests/browser/sandbag.spec.js:191:1 › Classic remains independently playable and links back to sandbag (490ms)
-  ✓   7 [desktop] › tests/browser/sandbag.spec.js:210:1 › small and landscape screens fit; default entry never loads the Classic simulation (417ms)
-  ✓   8 [mobile] › tests/browser/sandbag.spec.js:35:1 › immediate play, scoped hit target, combo expiry and sticker selection (4.4s)
-  ✓   9 [mobile] › tests/browser/sandbag.spec.js:74:1 › local photo crop, cancel, re-edit and remove; no upload requests (560ms)
-  ✓  10 [mobile] › tests/browser/sandbag.spec.js:111:1 › invalid and oversized photos recover without breaking play (2.0s)
-  ✓  11 [mobile] › tests/browser/sandbag.spec.js:132:1 › KO result, image export and immediate retry retain the chosen face (6.4s)
-  ✓  12 [mobile] › tests/browser/sandbag.spec.js:167:1 › keyboard, reduced motion and blocked storage remain playable (5.5s)
-  ✓  13 [mobile] › tests/browser/sandbag.spec.js:191:1 › Classic remains independently playable and links back to sandbag (492ms)
-  ✓  14 [mobile] › tests/browser/sandbag.spec.js:210:1 › small and landscape screens fit; default entry never loads the Classic simulation (418ms)
+  ✓   5 [desktop] › tests/browser/sandbag.spec.js:167:1 › keyboard, reduced motion and blocked storage remain playable (5.7s)
+  ✓   6 [desktop] › tests/browser/sandbag.spec.js:191:1 › Classic remains independently playable and links back to sandbag (514ms)
+  ✓   7 [desktop] › tests/browser/sandbag.spec.js:210:1 › small and landscape screens fit; default entry never loads the Classic simulation (412ms)
+  ✓   8 [desktop] › tests/browser/sandbag.spec.js:236:1 › cached face and bounded effects survive dense hits; idle does not repaint (5.8s)
+  ✓   9 [desktop] › tests/browser/sandbag.spec.js:268:1 › hub lazily loads playable modes, retains photo/round, and runs only the selected mode (3.8s)
+  ✓  10 [desktop] › tests/browser/sandbag.spec.js:314:1 › late mode imports, pending KO, and hidden pages cannot leave extra loops (6.4s)
+  ✓  11 [desktop] › tests/browser/sandbag.spec.js:347:1 › slow observed cadence cuts pixels and particles while keeping input and one loop (2.1s)
+  ✓  12 [mobile] › tests/browser/sandbag.spec.js:35:1 › immediate play, scoped hit target, combo expiry and sticker selection (4.4s)
+  ✓  13 [mobile] › tests/browser/sandbag.spec.js:74:1 › local photo crop, cancel, re-edit and remove; no upload requests (494ms)
+  ✓  14 [mobile] › tests/browser/sandbag.spec.js:111:1 › invalid and oversized photos recover without breaking play (1.8s)
+  ✓  15 [mobile] › tests/browser/sandbag.spec.js:132:1 › KO result, image export and immediate retry retain the chosen face (6.4s)
+  ✓  16 [mobile] › tests/browser/sandbag.spec.js:167:1 › keyboard, reduced motion and blocked storage remain playable (5.6s)
+  ✓  17 [mobile] › tests/browser/sandbag.spec.js:191:1 › Classic remains independently playable and links back to sandbag (475ms)
+  ✓  18 [mobile] › tests/browser/sandbag.spec.js:210:1 › small and landscape screens fit; default entry never loads the Classic simulation (398ms)
+  ✓  19 [mobile] › tests/browser/sandbag.spec.js:236:1 › cached face and bounded effects survive dense hits; idle does not repaint (5.8s)
+  ✓  20 [mobile] › tests/browser/sandbag.spec.js:268:1 › hub lazily loads playable modes, retains photo/round, and runs only the selected mode (4.0s)
+  ✓  21 [mobile] › tests/browser/sandbag.spec.js:314:1 › late mode imports, pending KO, and hidden pages cannot leave extra loops (6.4s)
+  ✓  22 [mobile] › tests/browser/sandbag.spec.js:347:1 › slow observed cadence cuts pixels and particles while keeping input and one loop (2.1s)
 
-  14 passed (42.2s)
+  22 passed (1.3m)

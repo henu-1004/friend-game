@@ -1,101 +1,86 @@
-# 친구 샌드백 — Vertical slice design
+# 친구 때리기 — densify pass
 
-2026-09-08 · Concept B · Sandbag only
+2026-09-08 · Sandbag first, light toy hub · supersedes the previous Sandbag-only slice boundary
 
-## Decision and playable promise
+## Play surface and hit feel
 
-“툭 치면, 빵 터진다.” A big, soft bag wearing one familiar face reacts to the player's own tap. The first screen is already playable. Upload is optional, never a gate. Comedy comes from squash and cartoon accessories, without injury imagery or social rankings.
+The first screen is the toy. A narrow Korean mode bar sits above a large bag; the photo picker and reaction shelf sit below it. There is no headline block, setup sidebar, onboarding sequence, or marketing footer. Warm paper, olive canvas, blunt orange gloves, thick comic strokes, and deliberately stupid expressions keep the existing art direction.
 
-Source: `/workspace/friend-game-briefs/CONCEPT_ANALYSIS.md`, Concept B, and `SCOPE.txt`. The explicit Sandbag-only override controls this phase. Friend Cannon is excluded. Existing Smash v2 is preserved as Classic; this slice is the new default entry.
+A hit immediately changes HP, draws the contact pose, and starts its sound in the same input handler. Hitstop freezes only the rendered reaction state; it never blocks JavaScript, input, or rAF. After the freeze, one damped scalar spring drives the bag's recoil. The bag, cached photo, and sticker receive a single affine transform. No face deformation is computed.
 
-## First five seconds and replay
+| Feel component | Normal | Every fourth combo hit | KO |
+| --- | --- | --- | --- |
+| Freeze | 38 ms | 58 ms | 82 ms |
+| Maximum horizontal squash/stretch | +21% | +29% | +29% |
+| Vertical compression | 76% of horizontal amount | Same | Same |
+| Camera translation amplitude | 3 virtual pixels | 6 | 6 |
+| New particles | 7 | 13 | 13 |
+| Sound | Low thump + short noise snap | Stronger thump, lower snap | Thump + comic squeak |
 
-1. Open `/`: the bag, full HP, and orange punch button are visible immediately.
-2. Tap the bag or button: HP changes on that input; the face squashes and recoils, a comic word and bounded confetti appear.
-3. Keep tapping: a visible combo deadline makes the rhythm legible; three hits reveal star eyes.
-4. Optional local photo: choose → drag/zoom or use horizontal/vertical sliders → confirm. Cancel keeps the previous face.
-5. KO → a short 650 ms visual payoff → result and one-click retry. The chosen face is retained. Escape from the result also starts a fresh round.
+The first impact is drawn synchronously, before waiting for the next frame. Freeze duration is quantized to display callbacks, so the last held frame may extend by one callback. rAF still targets 60 FPS during the pose hold. The punch glove lasts at most 230 ms, impact type at most 380 ms, and recoil settles to zero. A static settled bag causes no further canvas draws.
 
-A continuous combo takes 32 hits to KO; separate taps take 45. At a casual 2–3 hits/second a round is roughly 11–23 seconds, plus pauses. A rapid automated sequence is much shorter. The intended 30-second–3-minute session consists of several short rounds and photo/sticker changes; retention has not been established by human playtesting.
+## Reaction and comedy contract
 
-```mermaid
-stateDiagram-v2
-    [*] --> Ready
-    Ready --> Playing: first punch
-    Ready --> Crop: choose photo
-    Playing --> Crop: choose / adjust photo
-    Crop --> Ready: confirm / cancel before first punch
-    Crop --> Playing: confirm / cancel during round
-    Playing --> Playing: punch / combo expires
-    Playing --> KO: HP reaches zero
-    KO --> Result: 650 ms
-    Result --> Result: save local PNG
-    Result --> Ready: retry / Escape
-```
+Overlay anchors are authored in the cached face's local coordinate system: eyes around `(±36, -24)`, nose `(7, 8)`, mouth `(0, 43)`. They are approximate across photos; the crop editor supplies alignment. All six overlays and the final stacked KO overlay are rasterized once at startup. The round begins with no added overlay.
 
-The crop dialog blocks punch input but does not reset the current round. The combo naturally expires while editing. Hidden pages cancel the animation loop and clear the active combo; the round resumes when visible.
+| Combo | Overlay | Korean punchline |
+| --- | --- | --- |
+| 3 | Tears below the eyes | 눈에서 땀이 나는데? |
+| 6 | Oversized snot bubble | 콧방울 보존 법칙 |
+| 10 | Clenched cartoon teeth | 치과에서는 꽉 물라던데 |
+| 14 | X-eyes plus drool | 침은 정상 작동 |
+| 18 | A tiny, flat pink nosebleed mark | 휴지 한 장만 |
+| 23 | Eye stars and orbiting-looking static stars | 별점 다섯 개 |
+| KO | X-eyes, tears, grimace, drool, snot, stars | 얼굴이 퇴근했어요 |
 
-## Mechanics contract
+Unlocked reactions remain selectable until retry. Manual selection persists until automatic is selected again. Exactly two surprises use hit count, so breaking a combo cannot farm them: hit 8 draws one flying tissue (“에취!”); hit 20 draws one escaping spirit (“영혼 잠깐 외출 중”). Each lasts 1.05 seconds of active animation after hitstop. They share a single event slot, allocate no physics bodies, start no timers, and create no extra particles.
 
-| Element | Value / behavior |
-| --- | --- |
-| Starting HP | 360, clamped at zero |
-| Punch damage | `8 + min(6, floor(combo / 4))` |
-| Combo window | 850 ms; a hit at the exact deadline still continues |
-| Input rate cap | One hit per 70 ms; no held-key repeat |
-| Pointer target | Bag area, including its small recoil envelope; empty floor does not damage |
-| Keyboard / touch | Native button activation, Space/Enter, pointer input; no double damage from synthesized clicks |
-| Reaction thresholds | 3 = stars, 6 = spirals, 10 = moustache/monocle |
-| Sticker lifetime | Unlocked for the current round; automatic selection follows new hits; manual selection stays until changed |
-| KO | Further damage disabled, result once, final spiral sticker and KO stamp |
-| Retry | Reset HP/combo/hits/unlocks/timing/particles; keep photo, sound/motion settings, session KO count |
-| Best combo | Updated live, persisted at KO; safe fallback when storage unavailable |
+Rules retained: 360 HP, 850 ms combo window including the exact deadline, 70 ms minimum accepted-input interval, damage `8 + min(6, floor(combo / 4))`, 32 continuous hits to KO. KO ignores additional punches, shows the pose for 900 ms, then opens the result with local PNG export/retry. Retry resets reactions, effects, and round timing but keeps the face, settings, and session records.
 
-The four reactions are authored Canvas paths. Uploaded photos use the same paths and bag transform. No mesh warp, texture remapping, remote generation, or per-frame photo decoding is involved.
+## Hub, mode lifecycle, and prototypes
 
-## Visual artifacts and hierarchy
+`src/main.js` owns the only game rAF and routes each frame and input to the selected mode. Sandbag rules are eagerly loaded. `import()` loads `src/modes/finisher.js`, `punchout.js`, or `lottery.js` only when selected. A mode receives a shared stage interface; it cannot schedule its own loop. These modules use no timers or event listeners.
 
-Cream paper, olive gym equipment, a warm orange action color, dark outlines, and a friendly yellow practice face. The canvas keeps the face large and the background quiet. The desktop sidebar contains optional setup, the three discoverable stickers, and a personal record. On mobile the bag is first, then the setup and compact record panels.
+| Mode | One input and reward | Timing / retry |
+| --- | --- | --- |
+| Finisher | Stop a moving cursor; orange-zone hit earns 999-point KO, miss earns comic 12-point misfire | Success within ±0.13 of meter center; next press resets |
+| Punchout | Duck during the visible tell; automatically land a counter and increment success count | 1.15s anticipation, 0.8s tell; early/late gives a comic fail; retry |
+| Weapon lottery | Draw once; baguette, squeaky chicken, or leek automatically lands a hit with a named score | 780ms draw; repeat input during draw is ignored; draw again |
 
-| Artifact | Purpose |
-| --- | --- |
-| [Desktop ready](docs/artifacts/desktop-ready.png) | First screen, hierarchy, Classic entry |
-| [Mobile ready](docs/artifacts/mobile-ready.png) | Touch layout and full-page flow |
-| [Desktop combo](docs/artifacts/desktop-combo.png) | Moustache milestone and unlocked sticker controls |
-| [Mobile combo](docs/artifacts/mobile-combo.png) | Small-screen reaction layout |
-| [Desktop KO](docs/artifacts/desktop-ko.png) | Result, stats, retry and download |
-| [Mobile KO](docs/artifacts/mobile-ko.png) | Modal sizing on a phone viewport |
-| [Exported KO card](docs/artifacts/desktop-ko-card.png) | Actual PNG output with a synthetic test face |
-| [Classic play](docs/artifacts/classic-play.png) | Preserved old mode running independently |
-| [Performance JSON](docs/artifacts/performance.json) | Reproducible raw timing measurements |
+Mode change cancels the current scheduled callback, clears the pending Sandbag result timeout, stops sound voices, disposes the old prototype, and resets the renderer's cosmetic state. An import-generation token discards late loads. Failed imports restore playable Sandbag with a retry hint. Once ready, the single scheduler resumes. Sandbag round state and the shared photo survive; prototype scores/state restart on revisit.
 
-These are actual browser captures, not mockups. The test face is a locally generated illustration, not a real participant photo.
+Hidden pages cancel rAF and voices and clear the Sandbag combo. Punchout restarts anticipation on return; other prototype clocks pause. Native photo/result dialogs pause game animation and prototype clocks. A mode switch during Sandbag's KO delay cannot open that result over another mode; returning to a completed Sandbag opens its result.
 
-## 60 FPS budget and implementation
+`classic.html`, `src/classic.js`, `src/classic.css`, and `src/lore.js` remain unchanged. The default document imports none of Classic's simulation. The Classic entry remains a separate Vite bundle and page.
 
-`src/main.js` owns DOM/input, photo handling and frame scheduling. `src/sandbag.js` owns deterministic round rules and crop bounds. `src/sandbag-renderer.js` owns drawing and bounded cosmetic physics. `classic.html` loads the separate legacy bundle; none of its simulation is imported by Sandbag.
+## Rendering and sound budgets
 
-- One `requestAnimationFrame` loop and Canvas 2D; 16.67 ms is the 60 Hz frame budget.
-- A 1.5 maximum backing-store DPR and a one-million-pixel canvas ceiling.
-- At most 48 particles; expired particles are removed in place.
-- One 320×320 face texture during play; bounded 1600px source retained for re-cropping.
-- Spring integration capped at 33 ms per callback to avoid large resume jumps.
-- Gameplay DOM updates only on input/milestones; combo timer uses a transform. FPS text updates once per second with at most 180 interval samples.
-- The hidden-tab loop is canceled, and animation resumes with fresh timing.
-- No blur/shadow filters, external font downloads, network requests during play, or full-body physics.
-- Sound uses short-lived oscillators disconnected on completion; off by default.
-- Card rendering and PNG encoding occur only after an explicit save click.
+- Transparent game canvas; CSS owns the static gym marks/floor. Only the actor/effect envelope is cleared, clipped to the visible stage. On a narrow phone the bag legitimately occupies almost that whole canvas; settled frames skip drawing entirely.
+- At most 1,000,000 backing pixels; maximum DPR 1.5 on desktop or 1.25 for coarse-pointer phones. Two-times cached bag/stickers keep outlines legible without rebuilding paths during animation.
+- One bag texture rebuild at startup and on photo change/removal. The circular photo mask is applied during that rebuild only. Play uses `drawImage`, with no per-frame crop/mask/photo decode.
+- Seven nonempty cached overlay variants, one cached glove, one bounded active gag, maximum 32 particles. Expired/out-of-envelope particles are removed; cap is enforced before insertion.
+- If observed cadence drops below 57 FPS after at least 45 samples, the renderer switches to DPR 1, a 16-particle cap, 4/6 new particles per normal/heavy hit, and no radial impact lines. The scheduler keeps running at display cadence; lower quality persists for the page session.
+- One scalar spring, capped 33ms integration step. No full-body physics, blur/shadow filter, mesh warp, external fonts, or remote play requests.
+- DOM text updates on actions and phase changes; timing bars use transforms. FPS text updates once a second; cadence sample storage caps at 180.
+- Opt-in Web Audio: one cached 120ms noise buffer, no more than six concurrent short voices, all disconnected on completion or mode/page suspension. Sound scheduling shares the input with the frozen contact pose; actual speaker latency depends on the device.
+- OS or manual reduced motion removes squash, recoil and camera shake, reduces new particles to three, removes glove/radial flashes, slows Finisher, extends Punchout's tell to 1.1s, and removes lottery cycling. Static overlays and rewards remain readable.
 
-The live FPS indicator reports observed callback cadence, not a fixed “60” claim. Measurements distinguish frame cadence from JavaScript callback cost. Physical low-end Android and iOS devices still need validation.
+`window.__toyDebug()` exposes copied counters and snapshots for verification: selected mode, scheduled loop, per-mode frame counts, cache builds, draw counts, particle high-water mark, freeze duration, and active voices. It does not expose a photo or state mutation API.
 
-## Faces and accessibility
+## Verification and boundaries
 
-Photo input accepts common raster formats up to 12 MB. After successful decode, reject more than 40 million pixels, flatten and downsample once, then show a local crop editor. Browser decoding still briefly allocates the original image before that dimension check. Crop positions are clamped so dragging/zooming cannot leave blank borders. Object URLs are revoked in `finally`. A saved crop is held only in memory, and removal/reload clears app references to it. No photo bytes are stored in localStorage.
+`npm test` covers round rules, all reaction thresholds, heavy rhythm/gag budgets, crop bounds, and prototype timing/reward behavior. `npm run test:browser` covers desktop/mobile touch and keyboard, photo crop/edit/remove/invalid inputs, storage failures, KO/save/retry, cache/idle budgets, all mode rewards, lazy network imports, late-import races, KO cancellation, hidden-page lifecycle, and Classic isolation.
 
-Korean labels and status copy, native buttons/dialog focus, keyboard-accessible crop sliders, HP progress semantics, milestone announcements, and opt-in audio are included. Reduced-motion mode removes sway and squash and reduces particles. There is no audio-only dependency. Full screen-reader and real-device accessibility audits remain future validation.
+`npm run test:performance` records cadence and callback cost separately, with uploaded synthetic face and audio on. It fails below 57 average FPS, over 20ms p95 cadence, over 16.67ms p95 callback cost, browser errors, extra loops, idle repaint, face rebuild during play, or particle/audio/canvas budget violations. Profiles include desktop, Pixel 7 emulation, mobile 4× CPU slowdown, all three prototypes, Classic, and 180 seconds of mobile Sandbag replays. See [raw metrics](docs/artifacts/performance.json) and [current report](docs/DENSIFY_REPORT.md).
 
-## Slice boundary and next evidence
+Photos remain local and bounded: 12MB file limit, decoded 40MP limit, retained source at most 1600px on its long side, 320×320 crop. Browser decode briefly allocates the source before the pixel check. No landmark ML, persistent photo storage, accounts, rankings, multiplayer, human-cannon, engine migration, or realistic gore.
 
-Included: immediate punch loop, one face, local crop, HP/combo, four flat reactions, KO/retry, PNG souvenir, Korean responsive UI, personal best, separate Classic, tests, and performance artifacts.
+Real-device Android/iOS/Safari performance, speaker latency, full screen-reader behavior, and human laughter/retry evidence remain unverified. The three extra modes deliberately have one challenge and one reward, without campaigns or progression.
 
-Deferred: finisher mechanics, weapons, punchout, multiplayer, rankings, accounts, video recording, monetization, and new arenas. The next useful product evidence is a small human playtest of first-action clarity, laugh moments, voluntary retries, and photo setup. Automated repetition verifies stability, not fun or retention.
+## Play evidence
+
+- [Desktop ready](docs/artifacts/desktop-ready.png), [mobile ready](docs/artifacts/mobile-ready.png), [heavy impact](docs/artifacts/desktop-dense-impact.png).
+- [Mobile tissue gag](docs/artifacts/mobile-sneeze.png), [mobile spirit gag](docs/artifacts/mobile-spirit.png), [KO card](docs/artifacts/desktop-ko-card.png).
+- [Finisher reward](docs/artifacts/desktop-finisher.png), [Punchout reward](docs/artifacts/desktop-punchout.png), [weapon reward](docs/artifacts/desktop-lottery.png); matching mobile captures are in the same folder.
+- [Actual play video](docs/artifacts/party-play.webm) and [timestamped diagnostics](docs/artifacts/play-proof.json). WebM is silent; the app's sound is enabled during recording.
+- [Classic running](docs/artifacts/classic-play.png), [test output](docs/artifacts/browser-tests.txt), [performance output](docs/artifacts/performance-run.txt).

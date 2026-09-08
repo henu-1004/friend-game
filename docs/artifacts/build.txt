@@ -4,14 +4,17 @@
 
 vite v7.3.6 building client environment for production...
 transforming...
-✓ 10 modules transformed.
+✓ 15 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/classic.html                                0.52 kB │ gzip: 0.33 kB
-dist/index.html                                  0.72 kB │ gzip: 0.47 kB
-dist/assets/classic-CvvrBzK-.css                 5.13 kB │ gzip: 1.82 kB
-dist/assets/sandbag-DMpQ44Lg.css                11.26 kB │ gzip: 3.24 kB
-dist/assets/modulepreload-polyfill-B5Qt9EMX.js   0.71 kB │ gzip: 0.40 kB
-dist/assets/classic-CAyFuSBk.js                 21.96 kB │ gzip: 9.59 kB
-dist/assets/sandbag-BkeMWi4b.js                 24.07 kB │ gzip: 9.38 kB
-✓ built in 239ms
+dist/classic.html                                0.52 kB │ gzip:  0.33 kB
+dist/index.html                                  0.72 kB │ gzip:  0.47 kB
+dist/assets/classic-CvvrBzK-.css                 5.13 kB │ gzip:  1.82 kB
+dist/assets/sandbag-CG0ZmFgD.css                10.42 kB │ gzip:  3.14 kB
+dist/assets/modulepreload-polyfill-B5Qt9EMX.js   0.71 kB │ gzip:  0.40 kB
+dist/assets/finisher-CU2NjXnN.js                 1.06 kB │ gzip:  0.72 kB
+dist/assets/punchout-F9_J4nuR.js                 1.25 kB │ gzip:  0.77 kB
+dist/assets/lottery-D-Gqj5mP.js                  1.56 kB │ gzip:  0.91 kB
+dist/assets/classic-CAyFuSBk.js                 21.96 kB │ gzip:  9.59 kB
+dist/assets/sandbag-BnS2wpEW.js                 32.01 kB │ gzip: 12.85 kB
+✓ built in 266ms

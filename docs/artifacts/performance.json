@@ -1,77 +1,357 @@
 {
-  "measuredAt": "2026-09-08T00:28:18.076Z",
+  "measuredAt": "2026-09-08T04:05:37.431Z",
   "environment": "Headless Chromium on shared Linux runner; emulation is not physical phone validation",
+  "budgets": {
+    "minimumFps": 57,
+    "frameP95Ms": 20,
+    "callbackP95Ms": 16.67,
+    "maxParticles": 32,
+    "maxLoops": 1,
+    "canvasPixels": 1000000,
+    "maxAudioVoices": 6
+  },
   "profiles": [
     {
       "name": "desktop-sandbag",
       "durationMs": 8000,
-      "frames": 480,
+      "idleDraws": 0,
+      "cacheBuildsDuringPlay": 0,
+      "frames": 479,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 4,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 584,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 0,
+        "renderer": {
+          "draws": 320,
+          "cacheBuilds": 2,
+          "maxParticles": 32,
+          "hitstops": 64,
+          "clearedPixels": 151483345.45454562,
+          "quality": "full",
+          "dpr": 1
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": null
+      },
       "averageFps": 60,
       "frameP95Ms": 16.7,
       "frameP99Ms": 16.8,
-      "callbackP95Ms": 0.6,
+      "callbackP95Ms": 0.4,
       "framesOver25Ms": 0,
-      "kos": 1,
-      "canvasPixels": 368180,
-      "domNodes": 161,
-      "errors": []
+      "kos": 2,
+      "canvasPixels": 836160,
+      "domNodes": 134,
+      "errors": [],
+      "failures": [],
+      "passed": true
     },
     {
       "name": "mobile-sandbag",
       "durationMs": 8000,
-      "frames": 479,
+      "idleDraws": 0,
+      "cacheBuildsDuringPlay": 0,
+      "frames": 480,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 4,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 581,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 0,
+        "renderer": {
+          "draws": 321,
+          "cacheBuilds": 2,
+          "maxParticles": 32,
+          "hitstops": 64,
+          "clearedPixels": 104910082.38805906,
+          "quality": "full",
+          "dpr": 1.25
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": null
+      },
       "averageFps": 60,
-      "frameP95Ms": 16.8,
+      "frameP95Ms": 16.7,
       "frameP99Ms": 16.8,
       "callbackP95Ms": 0.4,
       "framesOver25Ms": 0,
-      "kos": 1,
-      "canvasPixels": 302211,
-      "domNodes": 161,
-      "errors": []
+      "kos": 2,
+      "canvasPixels": 329770,
+      "domNodes": 134,
+      "errors": [],
+      "failures": [],
+      "passed": true
     },
     {
       "name": "mobile-4x-cpu-sandbag",
       "durationMs": 8000,
-      "frames": 480,
-      "averageFps": 60,
-      "frameP95Ms": 16.7,
+      "idleDraws": 0,
+      "cacheBuildsDuringPlay": 0,
+      "frames": 479,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 5,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 589,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 1,
+        "renderer": {
+          "draws": 322,
+          "cacheBuilds": 2,
+          "maxParticles": 16,
+          "hitstops": 64,
+          "clearedPixels": 67704587.74925418,
+          "quality": "lite",
+          "dpr": 1
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": null
+      },
+      "averageFps": 59.88,
+      "frameP95Ms": 16.8,
       "frameP99Ms": 16.8,
-      "callbackP95Ms": 1.6,
-      "framesOver25Ms": 0,
-      "kos": 1,
-      "canvasPixels": 302211,
-      "domNodes": 161,
-      "errors": []
+      "callbackP95Ms": 1.4,
+      "framesOver25Ms": 1,
+      "kos": 2,
+      "canvasPixels": 211288,
+      "domNodes": 134,
+      "errors": [],
+      "failures": [],
+      "passed": true
     },
     {
       "name": "classic-first-stage",
       "durationMs": 8000,
+      "idleDraws": null,
+      "cacheBuildsDuringPlay": null,
       "frames": 480,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 0,
+      "diagnostics": null,
       "averageFps": 60,
       "frameP95Ms": 16.7,
       "frameP99Ms": 16.8,
-      "callbackP95Ms": 0.5,
+      "callbackP95Ms": 0.4,
       "framesOver25Ms": 0,
       "kos": 0,
       "canvasPixels": 540000,
       "domNodes": 166,
-      "errors": []
+      "errors": [],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "name": "mobile-finisher",
+      "durationMs": 8000,
+      "idleDraws": 0,
+      "cacheBuildsDuringPlay": 0,
+      "frames": 479,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 3,
+      "diagnostics": {
+        "activeMode": "finisher",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 102,
+          "finisher": 481,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 0,
+        "renderer": {
+          "draws": 51,
+          "cacheBuilds": 2,
+          "maxParticles": 13,
+          "hitstops": 16,
+          "clearedPixels": 16667957.01492539,
+          "quality": "full",
+          "dpr": 1.25
+        },
+        "freezeMs": 0,
+        "audioVoices": 2,
+        "mode": {
+          "phase": "aim",
+          "position": 0.05,
+          "wins": 16
+        }
+      },
+      "averageFps": 60,
+      "frameP95Ms": 16.7,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 0.2,
+      "framesOver25Ms": 0,
+      "kos": 0,
+      "canvasPixels": 329770,
+      "domNodes": 132,
+      "errors": [],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "name": "mobile-punchout",
+      "durationMs": 8000,
+      "idleDraws": 0,
+      "cacheBuildsDuringPlay": 0,
+      "frames": 480,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 3,
+      "diagnostics": {
+        "activeMode": "punchout",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 101,
+          "finisher": 0,
+          "punchout": 481,
+          "lottery": 0
+        },
+        "particles": 0,
+        "renderer": {
+          "draws": 28,
+          "cacheBuilds": 2,
+          "maxParticles": 13,
+          "hitstops": 6,
+          "clearedPixels": 9151035.223880596,
+          "quality": "full",
+          "dpr": 1.25
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": {
+          "phase": "wait",
+          "wins": 6
+        }
+      },
+      "averageFps": 60,
+      "frameP95Ms": 16.8,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 0.1,
+      "framesOver25Ms": 0,
+      "kos": 0,
+      "canvasPixels": 329770,
+      "domNodes": 132,
+      "errors": [],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "name": "mobile-lottery",
+      "durationMs": 8000,
+      "idleDraws": 0,
+      "cacheBuildsDuringPlay": 0,
+      "frames": 480,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 3,
+      "diagnostics": {
+        "activeMode": "lottery",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 102,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 481
+        },
+        "particles": 0,
+        "renderer": {
+          "draws": 23,
+          "cacheBuilds": 2,
+          "maxParticles": 13,
+          "hitstops": 9,
+          "clearedPixels": 7516921.7910447735,
+          "quality": "full",
+          "dpr": 1.25
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": {
+          "phase": "rolling",
+          "draws": 9,
+          "weapon": "chicken"
+        }
+      },
+      "averageFps": 60,
+      "frameP95Ms": 16.7,
+      "frameP99Ms": 16.8,
+      "callbackP95Ms": 0.2,
+      "framesOver25Ms": 0,
+      "kos": 0,
+      "canvasPixels": 329770,
+      "domNodes": 132,
+      "errors": [],
+      "failures": [],
+      "passed": true
     },
     {
       "name": "mobile-3-minute-soak",
       "durationMs": 180000,
-      "frames": 10810,
+      "idleDraws": 0,
+      "cacheBuildsDuringPlay": 0,
+      "frames": 10809,
+      "maxScheduledLoops": 1,
+      "maxAudioVoices": 4,
+      "diagnostics": {
+        "activeMode": "sandbag",
+        "loading": false,
+        "scheduledLoops": 1,
+        "loopCounts": {
+          "sandbag": 10910,
+          "finisher": 0,
+          "punchout": 0,
+          "lottery": 0
+        },
+        "particles": 3,
+        "renderer": {
+          "draws": 7210,
+          "cacheBuilds": 2,
+          "maxParticles": 32,
+          "hitstops": 1376,
+          "clearedPixels": 2356391570.149082,
+          "quality": "full",
+          "dpr": 1.25
+        },
+        "freezeMs": 0,
+        "audioVoices": 0,
+        "mode": null
+      },
       "averageFps": 60,
       "frameP95Ms": 16.7,
       "frameP99Ms": 16.8,
       "callbackP95Ms": 0.3,
       "framesOver25Ms": 0,
-      "kos": 39,
-      "canvasPixels": 302211,
-      "domNodes": 161,
-      "errors": []
+      "kos": 43,
+      "canvasPixels": 329770,
+      "domNodes": 134,
+      "errors": [],
+      "failures": [],
+      "passed": true
     }
   ],
-  "browser": "153.0.8010.12"
+  "browser": "153.0.8010.12",
+  "passed": true
 }

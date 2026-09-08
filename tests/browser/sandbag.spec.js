@@ -55,7 +55,7 @@ test("immediate play, scoped hit target, combo expiry and sticker selection", as
   await hit(page, 9);
   await expect(page.locator('[data-reaction="3"]')).toBeEnabled();
   await page.locator('[data-reaction="3"]').click();
-  await expect(page.locator("#reaction-caption")).toContainText("신사");
+  await expect(page.locator("#reaction-caption")).toContainText("치과");
   await page.screenshot({
     path: `docs/artifacts/${info.project.name}-combo.png`,
     fullPage: true,
@@ -231,4 +231,133 @@ test("small and landscape screens fit; default entry never loads the Classic sim
   ).toBe(true);
   await hit(page, 1);
   await expect(page.locator("#hp")).toHaveAttribute("aria-valuenow", "352");
+});
+
+test("cached face and bounded effects survive dense hits; idle does not repaint", async ({ page }, info) => {
+  await page.goto("/");
+  await localPhoto(page); await page.locator("#save-crop").click();
+  await page.locator("#sound").click();
+  const builds = await page.evaluate(() => window.__toyDebug().renderer.cacheBuilds);
+  const first = await page.evaluate(() => {
+    document.querySelector("#punch").click();
+    return window.__toyDebug();
+  });
+  expect(first.freezeMs).toBeGreaterThan(0);
+  expect(first.audioVoices).toBeGreaterThan(0);
+  await page.waitForTimeout(90);
+  await hit(page, 7, 80);
+  await page.screenshot({ path: `docs/artifacts/${info.project.name}-sneeze.png`, fullPage: true });
+  await hit(page, 12, 80);
+  await page.screenshot({ path: `docs/artifacts/${info.project.name}-spirit.png`, fullPage: true });
+  await hit(page, 3, 80);
+  await expect(page.locator('[data-reaction="6"]')).toBeEnabled();
+  for (const i of [1, 2, 3, 4, 5, 6]) {
+    await page.locator(`[data-reaction="${i}"]`).click();
+    await expect(page.locator(`[data-reaction="${i}"]`)).toHaveAttribute("aria-pressed", "true");
+  }
+  await page.waitForTimeout(1600);
+  const settled = await page.evaluate(() => window.__toyDebug());
+  expect(settled.renderer.cacheBuilds).toBe(builds);
+  expect(settled.renderer.maxParticles).toBeLessThanOrEqual(32);
+  expect(settled.audioVoices).toBe(0);
+  expect(settled.particles).toBe(0);
+  await page.waitForTimeout(250);
+  expect((await page.evaluate(() => window.__toyDebug())).renderer.draws).toBe(settled.renderer.draws);
+});
+
+test("hub lazily loads playable modes, retains photo/round, and runs only the selected mode", async ({ page }, info) => {
+  const loaded = [], errors = [];
+  page.on("request", request => loaded.push(request.url()));
+  page.on("pageerror", e => errors.push(e.message));
+  await page.goto("/");
+  expect(loaded.some(url => /assets\/(finisher|punchout|lottery|classic)-/.test(url))).toBe(false);
+  await localPhoto(page); await page.locator("#save-crop").click();
+  await hit(page, 1);
+  for (const mode of ["finisher", "punchout", "lottery"]) {
+    await page.locator(`[data-mode="${mode}"]`).click();
+    await expect(page.locator(`[data-mode="${mode}"]`)).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => page.evaluate(() => window.__toyDebug().loading)).toBe(false);
+    expect(loaded.some(url => url.includes(`/assets/${mode}-`))).toBe(true);
+    const before = await page.evaluate(() => window.__toyDebug());
+    if (mode === "finisher") {
+      await page.waitForFunction(() => {
+        const d = window.__toyDebug();
+        if (d.mode.phase === "aim" && Math.abs(d.mode.position - .5) < .1) document.querySelector("#punch").click();
+        return window.__toyDebug().mode.phase === "reward";
+      });
+      await expect(page.locator("#bag-status")).toContainText("999");
+    } else if (mode === "punchout") {
+      await expect(page.locator("#bag-status")).toHaveText("지금 피해!");
+      await page.locator("#punch").click();
+      await expect(page.locator("#bag-status")).toContainText("반격 성공");
+    } else {
+      await page.locator("#target").focus(); await page.keyboard.press("Space");
+      await expect(page.locator("#bag-status")).toContainText("점");
+    }
+    await page.screenshot({ path: `docs/artifacts/${info.project.name}-${mode}.png`, fullPage: true });
+    const after = await page.evaluate(() => window.__toyDebug());
+    expect(after.scheduledLoops).toBe(1);
+    expect(after.loopCounts[mode]).toBeGreaterThan(before.loopCounts[mode]);
+    for (const other of ["sandbag", "finisher", "punchout", "lottery"].filter(m => m !== mode))
+      expect(after.loopCounts[other]).toBe(before.loopCounts[other]);
+    expect(await page.locator("#avatar img").count()).toBe(1);
+    if (mode !== "lottery") { await page.locator("#punch").click(); expect((await page.evaluate(() => window.__toyDebug())).mode.phase).not.toBe("reward"); }
+  }
+  await page.locator('[data-mode="sandbag"]').click();
+  await expect(page.locator("#hp")).toHaveAttribute("aria-valuenow", "352");
+  await hit(page, 1);
+  await expect(page.locator("#hp")).toHaveAttribute("aria-valuenow", "344");
+  expect(loaded.some(url => /assets\/classic-/.test(url))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test("late mode imports, pending KO, and hidden pages cannot leave extra loops", async ({ page }) => {
+  await page.goto("/");
+  await page.route(/assets\/finisher-.*\.js/, async route => {
+    await new Promise(resolve => setTimeout(resolve, 350)); await route.continue();
+  });
+  await page.locator('[data-mode="finisher"]').click();
+  await page.locator('[data-mode="lottery"]').click();
+  await page.waitForTimeout(600);
+  expect((await page.evaluate(() => window.__toyDebug())).activeMode).toBe("lottery");
+  await page.locator('[data-mode="sandbag"]').click();
+  await hit(page, 32, 80);
+  await page.locator('[data-mode="punchout"]').click();
+  await page.waitForTimeout(950);
+  await expect(page.locator("#result")).not.toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  const hidden = await page.evaluate(() => window.__toyDebug());
+  expect(hidden.scheduledLoops).toBe(0);
+  await page.waitForTimeout(150);
+  expect((await page.evaluate(() => window.__toyDebug())).loopCounts).toEqual(hidden.loopCounts);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await page.locator('[data-mode="sandbag"]').click();
+  await expect(page.locator("#result")).toBeVisible();
+  await page.locator("#retry").click();
+  expect((await page.evaluate(() => window.__toyDebug())).scheduledLoops).toBe(1);
+  await expect(page.locator("#hp")).toHaveAttribute("aria-valuenow", "360");
+});
+
+test("slow observed cadence cuts pixels and particles while keeping input and one loop", async ({ page }) => {
+  await page.addInitScript(() => {
+    const raf = window.requestAnimationFrame;
+    // Simulate a 30 Hz cadence without slowing the test runner or changing input.
+    window.requestAnimationFrame = cb => raf(time => cb(time * 2));
+  });
+  await page.goto("/");
+  await expect.poll(() => page.evaluate(() => window.__toyDebug().renderer.quality)).toBe("lite");
+  const before = await page.evaluate(() => window.__toyDebug());
+  await page.locator("#punch").click();
+  await expect(page.locator("#hp")).toHaveAttribute("aria-valuenow", "352");
+  const after = await page.evaluate(() => window.__toyDebug());
+  expect(after.scheduledLoops).toBe(1);
+  expect(after.renderer.dpr).toBe(1);
+  expect(after.renderer.cacheBuilds).toBe(before.renderer.cacheBuilds);
+  expect(after.renderer.maxParticles).toBeLessThanOrEqual(16);
 });
